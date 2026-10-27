@@ -71,6 +71,19 @@ from the email callback. `?mode=update` selects the reset form; it never authori
 a password change. Real OAuth, email delivery, approval enforcement, and session
 persistence still need integration testing after H2.
 
+## Meal card previews
+
+With mock mode enabled, `/dev/meals` previews single/multiple proposals, photo
+assumptions, clarification, saved, discarded, and deleted cards. It includes a
+save-failure/retry scenario and returns 404 in production. Unsaved proposal edits,
+discard state, and pending retry actions live only in the private browser-memory
+query cache; navigation preserves them, while reload/sign-out clears them. The
+current API has no route to persist a discarded proposal across devices.
+
+A6's Edit action changes an unsaved proposal's name and consumed time. Full
+portion/item editing and saved-meal edits are part of A7. Saves use server-returned
+nutrition totals. Save all sends one request with one retained idempotency key.
+
 ## Project documentation
 
 - [`docs/PRD.md`](docs/PRD.md): what we're building and why

@@ -107,6 +107,8 @@ A5 implementation is on `ken/a5-chat-screen`, stacked on A4 for review. Includes
 
 **Done when:** every card fixture from contracts §4 renders correctly in both themes.
 
+A6 implementation is on `ken/a6-meal-cards`, stacked on A5 for review. Cards expand to portions, sources, assumptions, time, and totals; single and batch saves retain retry identities and use server totals. Clarification focuses chat. Discard and unsaved name/time edits survive navigation in the private in-memory query cache, but reload clears them: the API has no discard-persistence endpoint. `/dev/meals` previews every fixture and save failure/retry. Full item/portion editing and saved-meal edits remain A7, and auto-save undo remains A10. Keep boxes open until review/merge; ask Sandy about a persisted proposal-state endpoint during integration.
+
 ## A7 — Meal editor
 
 `src/components/meals/meal-editor.tsx`: a bottom sheet on mobile (`Drawer`), a dialog on desktop.
