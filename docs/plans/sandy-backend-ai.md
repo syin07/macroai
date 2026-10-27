@@ -38,14 +38,14 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 
 ## B2 — Schema, RLS, and approved accounts
 
-- [ ] Migration `0001_init.sql`: every table from PRD §7.1 (`profiles`, `account_preferences`, `nutrition_goals`, `meals`, `meal_items` with `basis_per_100g` as jsonb, `nutrition_cache`, `conversations`, `messages`, `user_memories`, `meal_revisions`, `temporary_uploads`, `ai_usage`), plus `approved_emails (email text primary key)` and `idempotency_keys (user_id, key, response jsonb, created_at)`.
-- [ ] Numeric columns use `numeric(10,3)`; timestamps are `timestamptz`; `meals.version int not null default 1`.
-- [ ] Trigger: on `auth.users` insert, create `profiles` + `account_preferences` rows (theme `system`, save_mode `confirm`, timezone `UTC` until onboarding).
-- [ ] SQL function `is_approved()` → true if the current user's email is in `approved_emails`.
-- [ ] RLS on every user table: `user_id = auth.uid() and is_approved()`. `meal_items` checks ownership through its parent meal. `nutrition_cache` is readable by any approved user and writable only by the service role.
-- [ ] Indexes from PRD §7.4, plus a trigram index (`pg_trgm`) on `meals.name` and `meal_items.food_name` for search.
+- [x] Migration `0001_init.sql`: every table from PRD §7.1 (`profiles`, `account_preferences`, `nutrition_goals`, `meals`, `meal_items` with `basis_per_100g` as jsonb, `nutrition_cache`, `conversations`, `messages`, `user_memories`, `meal_revisions`, `temporary_uploads`, `ai_usage`), plus `approved_emails (email text primary key)` and `idempotency_keys (user_id, key, response jsonb, created_at)`.
+- [x] Numeric columns use `numeric(10,3)`; timestamps are `timestamptz`; `meals.version int not null default 1`.
+- [x] Trigger: on `auth.users` insert, create `profiles` + `account_preferences` rows (theme `system`, save_mode `confirm`, timezone `UTC` until onboarding).
+- [x] SQL function `is_approved()` → true if the current user's email is in `approved_emails`.
+- [x] RLS on every user table: `user_id = auth.uid() and is_approved()`. `meal_items` checks ownership through its parent meal. `nutrition_cache` is readable by any approved user and writable only by the service role.
+- [x] Indexes from PRD §7.4, plus a trigram index (`pg_trgm`) on `meals.name` and `meal_items.food_name` for search.
 - [ ] Seed both of your emails into `approved_emails` (dev and prod).
-- [ ] Write `supabase/tests/rls.sql` (or a TS test using two signed-in clients): user A cannot select, insert, update, or delete user B's rows in any table; an unapproved user can't read anything.
+- [x] Write `supabase/tests/rls.sql` (or a TS test using two signed-in clients): user A cannot select, insert, update, or delete user B's rows in any table; an unapproved user can't read anything.
 
 **Done when:** the migration applies cleanly with `supabase db reset`, and the RLS test passes.
 
