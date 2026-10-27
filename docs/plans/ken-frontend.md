@@ -179,6 +179,8 @@ A12 implementation is on `ken/a12-settings`, pending review/merge. Includes serv
   4. Save mode choice with a one-line explanation of each.
 - [ ] `completeOnboarding` → `/chat`.
 
+A13 implementation is on `ken/a13-onboarding`, pending review/merge. Four steps include progress dots, detected time zone, the shared metric/imperial goal calculator, editable suggested or manual targets, optional skips, and explained save modes. First-run routing checks `me.onboarding_complete` within authenticated app routes and sends completed accounts away from onboarding. Failed loads offer retry; failed saves retain choices, duplicate finish requests are blocked, and completion runs only after the save mode succeeds. Completion updates the account query before navigating to Chat. Body-stat drafts stay in component memory for Back and disappear on unmount; no browser storage is used. `/auth/onboarding-preview` is development-only with mocks. A13 acceptance remains open until merge and real approved-account verification; A4 production sign-in wiring is still pending.
+
 ## A14 — Insights tab (MVP-light)
 
 - [ ] For the MVP: the last 7 recorded days as a simple list (date, kcal, protein) via `getDaily` per day, with a note that charts are coming. Full charts (Recharts) are P1.
