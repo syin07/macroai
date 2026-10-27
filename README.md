@@ -55,6 +55,22 @@ to `sendChat()` or `saveMeals()` on retry so its identifier stays unchanged.
 The query hooks copy the returned daily summaries into the cache and cancel
 older daily requests that could otherwise overwrite them.
 
+## Auth UI previews (H2 pending)
+
+With mock mode enabled, open `/dev/auth` for sign-in, sign-up, unapproved-account,
+network-error, and password-recovery scenarios. Use made-up credentials. These
+stubs create no accounts, send no email, and retain only session metadata in
+memory. Passwords and recovery tokens are never persisted. Both development
+playgrounds return 404 in production.
+
+The frontend boundary is `src/lib/api/auth.ts`. Until Sandy's H2 helpers land,
+production authentication stays unavailable even if mock mode is enabled.
+H2 integration must delegate to `src/lib/auth/client.ts`, verify the user and
+approval through the real session/server, and use a verified recovery session
+from the email callback. `?mode=update` selects the reset form; it never authorizes
+a password change. Real OAuth, email delivery, approval enforcement, and session
+persistence still need integration testing after H2.
+
 ## Project documentation
 
 - [`docs/PRD.md`](docs/PRD.md): what we're building and why
