@@ -150,6 +150,20 @@ body {
   outline: 2px solid var(--app-accent);
   outline-offset: 2px;
 }
+.meal-card button:focus-visible,
+.meal-card-group button:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: -3px;
+}
+.meal-card button:disabled,
+.meal-card-group button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.meal-card button,
+.meal-card-group button {
+  cursor: pointer;
+}
 @media (min-width: 768px) {
   .chat-screen {
     left: calc(224px + env(safe-area-inset-left));

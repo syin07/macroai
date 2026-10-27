@@ -13,10 +13,11 @@ import { useMessages, useSendChat } from "@/hooks/use-api";
 import type { ChatMessage } from "@/types/api";
 import { Brand } from "@/components/shared/brand";
 import { HeaderLink } from "@/components/shared/page-frame";
-import { MealPreview } from "./meal-preview";
+import { MessageMealCards } from "@/components/meals/message-meal-cards";
 import { DailyStrip } from "./daily-strip";
 import { ManualLog } from "./manual-log";
 import { nearBottom } from "./scroll-position";
+import { messageSource } from "./message-source";
 
 const prompts = [
   "2 eggs and toast",
@@ -270,7 +271,7 @@ export function ChatScreen() {
           )}
           <ol className="space-y-6">
             {[...messages, ...(shownLocal ? [shownLocal] : [])].map(
-              (message) => (
+              (message, messageIndex) => (
                 <li
                   key={message.id}
                   className={
@@ -292,17 +293,29 @@ export function ChatScreen() {
                           Photo attached
                         </p>
                       )}
-                      {message.text && (
-                        <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
-                          {message.text}
-                        </p>
-                      )}
-                      {message.cards.map((card, index) =>
-                        card.kind === "meal" &&
-                        !card.meal &&
-                        message.text === "This meal was deleted." ? null : (
-                          <MealPreview key={index} card={card} />
-                        ),
+                      {message.text &&
+                        !(
+                          message.text === "This meal was deleted." &&
+                          message.cards.some(
+                            (card) => card.kind === "meal" && !card.meal,
+                          )
+                        ) && (
+                          <p className="whitespace-pre-wrap break-words text-[15px] leading-6">
+                            {message.text}
+                          </p>
+                        )}
+                      {!!message.cards.length && (
+                        <MessageMealCards
+                          message={message}
+                          sourceType={messageSource(messages, messageIndex)}
+                          onLoadContext={
+                            history.hasNextPage
+                              ? () => void earlier(true)
+                              : undefined
+                          }
+                          loadingContext={history.isFetchingNextPage}
+                          onClarify={() => textarea.current?.focus()}
+                        />
                       )}
                     </div>
                     {message.status !== "sent" && (
