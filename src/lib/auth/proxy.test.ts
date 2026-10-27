@@ -45,6 +45,13 @@ describe("updateSession (proxy)", () => {
       expect(response.headers.get("x-middleware-next")).toBe("1");
     });
 
+    it("lets /api/cron/** through without a session (the route checks CRON_SECRET)", async () => {
+      const response = await get("/api/cron/purge");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+      expect(fake.auth.getClaims).not.toHaveBeenCalled();
+    });
+
     it("answers /api/** with a JSON 401, never a redirect", async () => {
       const response = await get("/api/me");
       expect(response.status).toBe(401);

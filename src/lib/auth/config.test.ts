@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isApiPath, isPublicPage, safeNextPath } from "./config";
+import { isApiPath, isCronPath, isPublicPage, safeNextPath } from "./config";
 
 describe("safeNextPath", () => {
   it.each([
@@ -38,5 +38,8 @@ describe("route classes", () => {
     expect(isApiPath("/api/me")).toBe(true);
     expect(isApiPath("/api")).toBe(true);
     expect(isApiPath("/apiary")).toBe(false);
+    expect(isCronPath("/api/cron/purge")).toBe(true);
+    expect(isCronPath("/api/cronjob")).toBe(false);
+    expect(isCronPath("/api/meals")).toBe(false);
   });
 });

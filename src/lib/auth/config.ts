@@ -28,6 +28,12 @@ export function isApiPath(pathname: string): boolean {
   return pathname === "/api" || pathname.startsWith("/api/");
 }
 
+// Vercel Cron routes. They carry no session; each route checks `Authorization: Bearer $CRON_SECRET`
+// itself, so the proxy lets them through untouched.
+export function isCronPath(pathname: string): boolean {
+  return pathname.startsWith("/api/cron/");
+}
+
 // Turn an untrusted `next` parameter into a same-origin path, or fall back to the home page.
 // Rejects absolute URLs, protocol-relative `//host`, backslash tricks, and anything else that
 // would resolve to another origin.
