@@ -82,9 +82,15 @@ export async function request<T>(
       options.redirectOnAuthError !== false
     ) {
       // This transport runs outside React. A document navigation also clears stale private query caches.
-      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-      if (response.status === 401) window.location.assign("/sign-in");
-      if (response.status === 403 && error?.code === "not_approved") {
+      if (response.status === 401 && window.location.pathname !== "/sign-in") {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign("/sign-in");
+      }
+      if (
+        response.status === 403 &&
+        error?.code === "not_approved" &&
+        window.location.pathname !== "/not-approved"
+      ) {
         // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/not-approved");
       }

@@ -86,6 +86,20 @@ describe("typed API transport", () => {
     expect(assign).toHaveBeenLastCalledWith("/not-approved");
   });
 
+  it.each([
+    ["unauthenticated", "/sign-in"],
+    ["not_approved", "/not-approved"],
+  ] as const)(
+    "does not reload %s errors on their existing destination",
+    async (code, pathname) => {
+      const assign = vi.fn();
+      vi.stubGlobal("window", { location: { assign, pathname } });
+      server.failNext(code);
+      await expect(api.getMe()).rejects.toMatchObject({ code });
+      expect(assign).not.toHaveBeenCalled();
+    },
+  );
+
   it("handles proxy HTML and network failures without leaking their content", async () => {
     transport.mockResolvedValueOnce(
       new Response("<html>private stack trace</html>", { status: 502 }),
