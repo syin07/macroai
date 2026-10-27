@@ -9,15 +9,21 @@ const USER_ID = "11111111-1111-4111-8111-111111111111";
 const MEAL_TEXT = "2 eggs and toast";
 
 // The user's Supabase client: records ai_usage inserts; answers the AI-cap count with `usageToday`;
-// nutrition_cache reads miss.
+// user_memories reads return `memoryRows`, recording their filters; nutrition_cache reads miss.
 const inserts: Array<[string, unknown]> = [];
+const memoryFilters: Array<[string, unknown]> = [];
 let usageToday = 0;
+let memoryRows: Array<Record<string, string>> = [];
 const userClient = {
   from: (table: string) => {
     const chain = {
       insert: async (row: unknown) => (inserts.push([table, row]), { error: null }),
       select: () => chain,
-      eq: () => chain,
+      eq: (column: string, value: unknown) => (table === "user_memories" && memoryFilters.push([column, value]), chain),
+      is: (column: string, value: unknown) => (memoryFilters.push([column, value]), chain),
+      order: () => chain,
+      limit: () => chain,
+      overrideTypes: async () => ({ data: memoryRows, error: null }),
       gte: async () => ({ count: usageToday, error: null }),
       maybeSingle: async () => ({ data: table === "profiles" ? { timezone: "UTC" } : null, error: null }),
     };
@@ -84,6 +90,8 @@ describe("POST /api/ai/analyze-meal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     inserts.length = 0;
+    memoryFilters.length = 0;
+    memoryRows = [];
     usageToday = 0;
     vi.stubEnv("AI_DAILY_CALL_CAP", "5");
     requireUser.mockResolvedValue({ user: { id: USER_ID }, supabase: userClient });
@@ -142,6 +150,21 @@ describe("POST /api/ai/analyze-meal", () => {
 
     expect(inserts).toEqual([
       ["ai_usage", expect.objectContaining({ user_id: USER_ID, endpoint: "ai/analyze-meal", input_tokens: 1000, output_tokens: 200 })],
+    ]);
+  });
+
+  it("sends the user's relevant saved memories to the model (B13)", async () => {
+    const at = "2026-10-20T08:00:00+00:00";
+    memoryRows = [
+      { id: "m0000000-0000-4000-8000-000000000001", category: "frequent_food", content: "Usual toast: sourdough, 1 slice", created_at: at, updated_at: at },
+      { id: "m0000000-0000-4000-8000-000000000002", category: "brand", content: "Oat milk: Oatly barista", created_at: at, updated_at: at },
+      { id: "m0000000-0000-4000-8000-000000000003", category: "response_style", content: "Keep replies short", created_at: at, updated_at: at },
+    ];
+    expect((await post({ text: MEAL_TEXT, timezone: "UTC" })).status).toBe(200);
+    expect(extractMeal.mock.calls[0]![0].memories).toEqual(["Keep replies short", "Usual toast: sourdough, 1 slice"]);
+    expect(memoryFilters).toEqual([
+      ["user_id", USER_ID],
+      ["deleted_at", null],
     ]);
   });
 
