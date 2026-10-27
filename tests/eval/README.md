@@ -25,6 +25,54 @@ One JSON object per line. The schema is `textCaseSchema` in `lib/cases.ts`.
 - `expected_items[].grams`: only for weights stated exactly in the input. It's checked within ±10%.
 - Optional fields: `expected_intent` (default `log_meal`), `memories`, `expect_inferred`, `expect_clarification`, `expected_local_date`, `now`, and `timezone`. The default clock is fixed at `2026-10-26T12:30:00-07:00` in `America/Los_Angeles`, so date phrases resolve the same way on every run.
 
+## Date cases: `date-cases.jsonl`
+
+Plan step B10; PRD FR-09. These need no model and no keys: `lib/date-cases.test.ts` runs every line through `resolveConsumedAt()` (`src/lib/ai/dates.ts`) as part of `npm test`. The model's only job for dates is copying the user's words into `time_phrase`; code turns them into a timestamp. The schema is `dateCaseSchema` in `lib/cases.ts`.
+
+```json
+{"id":"d31-at-8pm-before-8pm","phrase":"at_clock_time","input":"at 8 PM","now":"2026-10-26T12:30:00-07:00","timezone":"America/Los_Angeles","expected_local":"2026-10-25T20:00","note":"Today's 8 PM is hours away: the most recent one, yesterday"}
+```
+
+- `phrase`: which of the six FR-09 phrasings the case exercises: `yesterday`, `last_night`, `this_morning`, `hours_ago`, `last_weekday`, or `at_clock_time`. The test requires at least 3 cases of each.
+- `input`: the time words as they would appear in `time_phrase`.
+- `now` and `timezone`: required on every line, since the edge cases (just after midnight, DST, other zones) depend on them.
+- `expected_local`: the resolved `consumed_at` as wall-clock time in `timezone`, `YYYY-MM-DDTHH:mm`. The test also checks that it is never later than `now`.
+- `note`: optional; say why when the answer isn't obvious.
+
+The rules for ambiguous phrasings ("last Tuesday" said on a Tuesday, "at 8 PM" said before 8 PM, a bare "around 8", DST gaps) are in the comment at the top of `dates.ts`.
+
+## Correction cases: `correction-cases.jsonl`
+
+Plan step B10; PRD FR-06, §12.5, §12.14. This file is data only for now. The runner needs B8's chat tools, so until then `lib/correction-cases.test.ts` only checks that each case is well-formed and consistent with its own fixture. The schema is `correctionCaseSchema` in `lib/cases.ts`.
+
+Each line is one correction message, the state it applies to, and the expected outcome:
+
+```json
+{"id":"c01-remove-the-cheese","input":"remove the cheese",
+ "recent_meals":[{"id":"m-sandwich","name":"Turkey sandwich","consumed_at":"2026-10-26T12:10:00-07:00","version":1,
+   "items":[{"id":"i-cheddar","name":"Cheddar cheese","quantity":1,"unit":"slice","grams":28,"macros":{"calories":113,"protein_g":7,"carbs_g":0.4,"fat_g":9.3}}, "..."]}, "..."],
+ "expected":{"kind":"update","tool":"update_meal","meal_id":"m-sandwich","version":1,"removed_items":["i-cheddar"],"totals":{"calories":"down"}}}
+```
+
+(Shown wrapped; in the file each case is one line.)
+
+- `now` and `timezone`: optional, with the same defaults as text cases.
+- `recent_messages`: optional earlier chat turns, oldest first, for corrections that refer back ("I only ate half").
+- `recent_meals`: the fixture, newest first, at most 5 (what B10's context shows). The runner seeds these into a fake store for a test user. IDs are readable labels; the runner maps them to UUIDs.
+- `expected` is one of:
+  - `{"kind":"update","tool":"update_meal","meal_id","version", ...effects}`: exactly one `update_meal` call on that meal, sending the `version` from the fixture (PRD 12.14). Effects describe the meal after the call, so the case doesn't depend on the tool's argument shape:
+    - `removed_items`: these item IDs are gone.
+    - `scale_all`: every item's grams are multiplied by this (±5%).
+    - `item_grams` / `item_quantity`: `{item_id: value}` after the change (grams ±5%).
+    - `item_renamed`: `{item_id: [keywords]}`: the item's new name contains one of the keywords (a food swap, re-matched for nutrition).
+    - `consumed_local_date` / `consumed_local_hours` (`[from, to)`): where `consumed_at` lands in the case's zone. `time_phrase` is what the resolver should get; the test checks it agrees with `date-cases` rules.
+    - `totals.calories`: `down`, `up`, or `same` versus the fixture.
+    - Anything not listed must be unchanged: other items, other meals, and `consumed_at` unless a date effect is given.
+  - `{"kind":"delete","tool":"delete_meal","meal_id"}`: exactly one `delete_meal` call on that meal.
+  - `{"kind":"clarification","candidate_meal_ids":[...]}`: no `update_meal` or `delete_meal` call at all; the reply asks which meal (PRD 12.5). The listed meals are the plausible targets.
+
+The 8 cases: remove the cheese, I only ate half, that was lunch yesterday, make it 2 eggs not 3, it was 200g not 150g, actually that was skim milk, delete that last meal, and "remove the cheese" when two meals today have cheese (needs a clarification).
+
 ## Weighed photo cases: `cases/<id>/` (optional)
 
 We decided not to build a weighed-photo test set. The format below still works for any ad-hoc photos you weigh.
