@@ -1,6 +1,6 @@
+import { itemMacros, sumMacros } from "@/lib/nutrition/calc";
 import type { ComputedTruth, Truth } from "./cases";
 import type { NutritionLookup } from "./nutrition-lookup";
-import { macrosForGrams, sumMacros } from "./pipeline";
 
 // True macros for a weighed meal: each component's USDA per-100 g values × its weighed grams.
 export async function computeTruth(truth: Truth, lookup: NutritionLookup, now = new Date()): Promise<ComputedTruth> {
@@ -14,7 +14,7 @@ export async function computeTruth(truth: Truth, lookup: NutritionLookup, now = 
       fdc_id: item.fdc_id,
       usda_description: food.description,
       basis_per_100g: food.basisPer100g,
-      macros: macrosForGrams(food.basisPer100g, item.grams),
+      macros: itemMacros(food.basisPer100g, item.grams),
     });
   }
   return { computed_at: now.toISOString(), items, totals: sumMacros(items.map((item) => item.macros)) };

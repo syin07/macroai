@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { GoogleGenAI, ThinkingLevel, type Content, type GenerateContentResponse, type Part } from "@google/genai";
-import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS } from "./shared";
+import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS, throwIfIncomplete, type IncompleteStop } from "./shared";
 import { extractionJsonSchema, parseExtractionOutput, type TokenUsage } from "../extraction";
 import { EXTRACT_MEAL_PROMPT_VERSION, EXTRACT_MEAL_SYSTEM_PROMPT, buildExtractMealUserText } from "../prompts/extract-meal";
 import {
@@ -59,8 +59,17 @@ export class GeminiProvider implements AIProvider {
     });
 
     const usage = toUsage(response);
+    const raw = response.text ?? "";
+    const blocked = response.promptFeedback?.blockReason;
+    const finishReason = response.candidates?.[0]?.finishReason;
+    throwIfIncomplete(
+      geminiIncomplete(finishReason, blocked),
+      blocked ? `prompt blocked: ${blocked}` : (finishReason ?? "unknown"),
+      raw,
+      usage,
+    );
     return {
-      result: parseExtractionOutput(response.text ?? "", usage),
+      result: parseExtractionOutput(raw, usage),
       usage,
       model: response.modelVersion ?? this.model,
       promptVersion: EXTRACT_MEAL_PROMPT_VERSION,
@@ -117,6 +126,16 @@ const FINISH_REASONS: Record<string, ProviderTurn["stopReason"]> = {
   MAX_TOKENS: "max_tokens",
   SAFETY: "refusal",
 };
+
+// A blocked prompt has no candidates at all; otherwise anything but STOP means the JSON is cut short or withheld.
+export function geminiIncomplete(finishReason: string | undefined, blockReason: string | undefined): IncompleteStop | null {
+  if (blockReason) return "safety";
+  if (finishReason === "MAX_TOKENS") return "max_tokens";
+  if (finishReason && GEMINI_SAFETY_STOPS.has(finishReason)) return "safety";
+  return null;
+}
+
+const GEMINI_SAFETY_STOPS = new Set(["SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII"]);
 
 function toUsage(response: GenerateContentResponse): TokenUsage {
   const usage = response.usageMetadata;

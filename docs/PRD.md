@@ -2051,7 +2051,7 @@ Suggested targets:
 | AI structured-output validation | 99%+ valid responses after bounded retries |
 | Mobile usability | Core logging flows work on common mobile viewport sizes |
 | AI cost | Under $1 per 1,000 logged meals |
-| Calorie error (weighed subset) | Aspirational: under ~15%. Set the real target after the first bake-off measurement |
+| Calorie error (weighed subset) | Aspirational: under ~15%. Not measured yet: the 2026-10-26 bake-off used text cases only (no weighed-photo set), so it measured extraction, not calorie error. Re-check with ad-hoc weighed photos once photos ship (B9) |
 | Daily use | Both developers use it daily for two weeks without returning to another tracker |
 
 These are engineering acceptance targets, not measured product performance.
