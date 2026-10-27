@@ -62,6 +62,8 @@ A2 implementation is on `ken/a2-api-mocks`, pending Sandy's API-error-handling r
 
 **Done when:** all four tabs navigate without full reloads on phone and desktop sizes in both themes.
 
+A3 implementation is on `ken/a3-app-shell`, stacked on A2 until review and merge. Includes all route shells, accessible current-page navigation, keyboard skip navigation, and safe-area spacing. Auth forms and the chat/history/settings features remain in their later plan steps. Browser checks cover all four tabs at 375/768/1280 px in both themes; physical-device checks remain in A15.
+
 ## A4 — Auth screens
 
 Build with mocks or stubs first; wire up after **H2**.

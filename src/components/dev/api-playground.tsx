@@ -9,6 +9,7 @@ import { mockApi } from "@/mocks/server";
 import type { ErrorCode, Meal } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ThemePreview } from "./theme-preview";
 
 type Operation = { label: string; action: () => Promise<unknown> };
 
@@ -105,8 +106,9 @@ export function ApiPlayground({
   }
   const allMessages = messages.data?.messages ?? [];
   return (
-    <main className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">API playground</h1>
+      <ThemePreview />
       <p>
         Development only · in-memory mock data · reload resets everything. No
         network or AI calls. Mutations and account deletion here affect only
@@ -330,6 +332,6 @@ export function ApiPlayground({
           {result}
         </pre>
       </section>
-    </main>
+    </div>
   );
 }

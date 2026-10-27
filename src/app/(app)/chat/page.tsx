@@ -1,8 +1,23 @@
+import { MessageCircle } from "lucide-react";
+import {
+  EmptyPanel,
+  HeaderLink,
+  PageFrame,
+} from "@/components/shared/page-frame";
+
 export default function Chat() {
   return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="text-2xl font-semibold">MacroAI</h1>
-      <p className="mt-2">Your nutrition tracker is coming soon.</p>
-    </main>
+    <PageFrame
+      title="Chat"
+      description="Your food log, in one conversation."
+      chat
+      action={<HeaderLink href="/history">View history</HeaderLink>}
+    >
+      <EmptyPanel
+        icon={MessageCircle}
+        title="Start with what you ate"
+        description="A simple space for your meals, questions, and daily nutrition."
+      />
+    </PageFrame>
   );
 }
