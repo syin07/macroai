@@ -88,7 +88,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] `src/lib/nutrition/units.ts`: a default-grams table for informal units (cup by food type, tbsp, tsp, slice, scoop, handful, bowl, piece/egg/banana etc.). Fall back to USDA `foodPortions` when available.
 - [x] `src/lib/nutrition/usda.ts`: `searchFoods(query)` and `getFood(fdcId)`, normalized to `basis_per_100g` (energy 1008 / 2047 / 2048 → kcal, protein 1003, carbs 1005, fat 1004). Prefer the Foundation and SR Legacy data types for generic foods, and Branded when a brand is named.
 - [x] `src/lib/nutrition/match.ts`: rank candidates by name similarity, preparation match (raw vs cooked matters a lot), and data type. Reject below a threshold, and never substitute an unrelated food (PRD FR-04).
-- [ ] `src/lib/nutrition/cache.ts`: read and write `nutrition_cache` by normalized query key before calling USDA.
+- [x] `src/lib/nutrition/cache.ts`: read and write `nutrition_cache` by normalized query key before calling USDA.
 - [x] `src/lib/nutrition/calc.ts` (pure): `itemMacros(basis, grams)`, `sumMacros(items)`, `remaining(consumed, targets)`, `round1()` for display only.
 - [x] Unit tests (Vitest): doubling grams doubles macros; meal total = sum of items; rounding happens only at display; unit conversions.
 - [ ] Decide **USDA API vs. local copy**: if the API's latency or the 1,000/hour limit hurts in the bake-off, import the Foundation + SR Legacy CSVs into a `usda_foods` table instead. Record the choice in PRD §23.
@@ -97,11 +97,11 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B6 — Meal analysis pipeline (text)
 
-- [ ] `src/lib/ai/analyze.ts`: `analyzeMeal({ text, image?, user })` → `MealProposal[]`. It loads relevant memories, calls `extractMeal`, validates with Zod (retry once on invalid JSON, then fail with `ai_unavailable`), runs B5 matching, falls back to a labeled AI-only estimate (`nutrition_source: "ai"`) per item when there's no match, and computes totals.
-- [ ] Resolve dates: the model returns relative phrases or ISO; convert them in code using the user's timezone (`date-fns-tz`). Default to now.
-- [ ] Clarification rule (PRD FR-03): if the model's low/high range for an item spans >20% of meal calories or >15 g protein, set `needs_clarification` with one short question.
-- [ ] `POST /api/ai/analyze-meal` (internal and eval only).
-- [ ] Log usage to `ai_usage` (model, tokens, cost) on every call.
+- [x] `src/lib/ai/analyze.ts`: `analyzeMeal({ text, image?, user })` → `MealProposal[]`. It loads relevant memories, calls `extractMeal`, validates with Zod (retry once on invalid JSON, then fail with `ai_unavailable`), runs B5 matching, falls back to a labeled AI-only estimate (`nutrition_source: "ai"`) per item when there's no match, and computes totals.
+- [x] Resolve dates: the model returns relative phrases or ISO; convert them in code using the user's timezone (`date-fns-tz`). Default to now.
+- [x] Clarification rule (PRD FR-03): if the model's low/high range for an item spans >20% of meal calories or >15 g protein, set `needs_clarification` with one short question.
+- [x] `POST /api/ai/analyze-meal` (internal and eval only).
+- [x] Log usage to `ai_usage` (model, tokens, cost) on every call.
 
 **Done when:** the text eval cases produce valid proposals, and "should I eat pizza?" produces none.
 

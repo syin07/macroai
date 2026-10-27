@@ -33,6 +33,14 @@ export function isImageTooLarge(file: Blob): boolean {
   return file.size > MAX_IMAGE_BYTES;
 }
 
+// POST /api/ai/analyze-meal — internal/eval route, not part of Ken's contract. `now` pins the clock so
+// date-phrase eval cases are reproducible; it only affects the returned proposals, which aren't saved.
+export const analyzeMealRequestSchema = z.object({
+  text: z.string().trim().min(1).max(MAX_CHAT_TEXT),
+  timezone,
+  now: isoDateTime.optional(),
+});
+
 export const mealCardSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("proposal"),
