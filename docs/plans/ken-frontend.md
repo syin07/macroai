@@ -50,6 +50,8 @@ Scaffold handoff: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defau
 
 **Done when:** a scratch page can call every function in mock mode and show the results.
 
+A2 implementation is on `ken/a2-api-mocks`, pending Sandy's API-error-handling review and merge. Development playground: `/dev/api` with `NEXT_PUBLIC_USE_MOCKS=1`; it is unavailable in production. Chat drafts and save actions retain their IDs on retry, and mock records are kept only in memory.
+
 ## A3 — App shell and navigation
 
 - [ ] Route groups: `src/app/(auth)/{sign-in,sign-up,reset-password,not-approved}/page.tsx` and `src/app/(app)/{chat,history,insights,settings,onboarding}/page.tsx`. `/` redirects to `/chat`.
