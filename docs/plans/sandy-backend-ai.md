@@ -155,7 +155,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 ## B12 — Goals, preferences, onboarding
 
 - [x] `src/lib/nutrition/goals.ts` (pure): Mifflin–St Jeor BMR, activity multipliers (1.2 / 1.375 / 1.55 / 1.725 / 1.9), goal adjustment (−500 / 0 / +300 kcal), protein 1.8 g/kg (bodyweight), fat 25% of kcal, carbs = remainder. Unit-test against hand calculations.
-- [ ] `GET/PUT /api/goals` (a new `effective_from` row on change, so history keeps old targets), `POST /api/goals/suggest`, `GET/PATCH /api/preferences`, `POST /api/onboarding/complete`.
+- [x] `GET/PUT /api/goals` (a new `effective_from` row on change, so history keeps old targets), `POST /api/goals/suggest`, `GET/PATCH /api/preferences`, `POST /api/onboarding/complete`.
 - [ ] **(H3)** Tell Ken.
 
 ## B13 — Memory
