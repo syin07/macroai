@@ -16,6 +16,7 @@ The agreement between the backend (Sandy) and the frontend (Ken). Ken builds the
 | `src/lib/ai/**`, `src/lib/nutrition/**`, `src/lib/database/**`, `src/lib/memory/**` | Sandy | |
 | `src/lib/auth/**`, `src/middleware.ts` | Sandy | Ken calls the exported helpers |
 | `src/lib/validation/**`, `src/types/**` | Sandy | Contract changes need Ken's review |
+| `src/lib/api-error.ts` | Sandy | `ApiError` responses and status codes for routes |
 | `supabase/**` | Sandy | Migrations, RLS, seed |
 | `tests/eval/**` | Sandy | Model bake-off and AI eval |
 | `src/app/(auth)/**`, `src/app/(app)/**`, `src/app/layout.tsx` | Ken | All pages and layouts |
@@ -170,6 +171,8 @@ export interface ApiError {
 ---
 
 ## 3. Endpoints
+
+Each request/response body below also has a named type in `src/types/api.ts` (`ChatResponse`, `MessagesPage`, `SaveMealsRequest`, `SaveMealsResponse`, `MealsPage`, `UpdateMealRequest`, `UpdateMealResponse`, `DeleteMealResponse`, `UndoDeleteResponse`, `PutGoalsRequest`, `SuggestGoalsRequest`, `SuggestGoalsResponse`, `PatchPreferencesRequest`, `MemoriesResponse`, `PatchMemoryRequest`, `DeleteAccountRequest`) and a matching Zod schema in `src/lib/validation/`. The shapes are identical to the ones written inline here.
 
 All endpoints require a signed-in, approved user (session cookie set by Supabase). Every error response uses `ApiError`. Times are ISO 8601; dates are `YYYY-MM-DD` in the user's time zone.
 
