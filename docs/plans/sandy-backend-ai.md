@@ -110,7 +110,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] `GET /api/meals` (cursor pagination by `consumed_at, id`; `from`/`to` in the user's time zone; `q` uses the trigram index), and `GET /api/meals/:id`.
 - [x] `PATCH /api/meals/:id`: optimistic concurrency on `version`, recalculation, a revision row, and summaries for both the old and new day if the date moved. Mark changed items `edited_by_user`.
 - [x] `DELETE /api/meals/:id` → `pending_deletion` + `deleted_at`; it is excluded from all totals immediately. `POST /api/meals/:id/undo` within 10 s.
-- [x] A purge job: a Vercel Cron route (`/api/cron/purge`, protected by `CRON_SECRET`) every 5 minutes hard-deletes meals pending for more than 10 s, abandoned `temporary_uploads`, and `idempotency_keys` older than 24 h. (Rows that are pending but past their window are already invisible, so a coarse schedule is fine.)
+- [x] A purge job: a Vercel Cron route (`/api/cron/purge`, protected by `CRON_SECRET`) daily (the Hobby plan allows once a day) hard-deletes meals pending for more than 10 s, abandoned `temporary_uploads`, and `idempotency_keys` older than 24 h. (Rows that are pending but past their window are already invisible, so a coarse schedule is fine.)
 - [x] `GET /api/nutrition/daily`: sum of active meals for that local day, plus the goal in effect on that date.
 - [x] Integration tests for: idempotent double save, a stale-version PATCH → 409, a date move updating two days, delete → undo → delete → purge.
 
