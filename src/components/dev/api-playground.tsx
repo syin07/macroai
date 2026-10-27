@@ -319,6 +319,22 @@ export function ApiPlayground({
           >
             Reset mock database
           </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              mockApi.reset(0);
+              client.clear();
+              setSelected(null);
+              setOperation(null);
+              setFailed(false);
+              setResult(
+                "Empty conversation ready. Open Chat to try the first-use prompts.",
+              );
+            }}
+          >
+            Start empty mock conversation
+          </Button>
         </div>
       </section>
       <section aria-live="polite" aria-busy={busy} className="space-y-2">
