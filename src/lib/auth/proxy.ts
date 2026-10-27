@@ -2,16 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { apiErrorBody, errorStatus } from "@/lib/api-error";
 import { isApproved } from "./approval";
-import { NOT_APPROVED_PATH, SIGN_IN_PATH, isApiPath, isPublicPage, supabaseConfig } from "./config";
+import { NOT_APPROVED_PATH, SIGN_IN_PATH, isApiPath, isCronPath, isPublicPage, supabaseConfig } from "./config";
 
 // Runs before every non-static request (src/proxy.ts):
 //   1. Refresh the Supabase session and write the new cookies onto whatever response we return.
+//   0. /api/cron/**: pass through untouched (no session; the route checks CRON_SECRET).
 //   2. /api/**: signed out → 401 JSON (never a redirect; the API client follows redirects).
 //      Approval is checked by requireUser() in each route.
 //   3. Public pages (sign-in, sign-up, reset-password, not-approved, auth callback): pass through.
 //   4. Every other page: signed out → /sign-in, signed in but not approved → /not-approved.
 // This is the optimistic check; route handlers and RLS are the real enforcement.
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  if (isCronPath(request.nextUrl.pathname)) return NextResponse.next({ request });
   let response = NextResponse.next({ request });
   const { url, anonKey } = supabaseConfig();
   const supabase = createServerClient(url, anonKey, {

@@ -106,13 +106,13 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B7 — Meals API
 
-- [ ] `POST /api/meals` with an `Idempotency-Key` (store the response in `idempotency_keys` and replay it on retry), server-side recalculation, and a `meal_revisions` row with reason `created`.
-- [ ] `GET /api/meals` (cursor pagination by `consumed_at, id`; `from`/`to` in the user's time zone; `q` uses the trigram index), and `GET /api/meals/:id`.
-- [ ] `PATCH /api/meals/:id`: optimistic concurrency on `version`, recalculation, a revision row, and summaries for both the old and new day if the date moved. Mark changed items `edited_by_user`.
-- [ ] `DELETE /api/meals/:id` → `pending_deletion` + `deleted_at`; it is excluded from all totals immediately. `POST /api/meals/:id/undo` within 10 s.
-- [ ] A purge job: a Vercel Cron route (`/api/cron/purge`, protected by `CRON_SECRET`) every 5 minutes hard-deletes meals pending for more than 10 s, abandoned `temporary_uploads`, and `idempotency_keys` older than 24 h. (Rows that are pending but past their window are already invisible, so a coarse schedule is fine.)
-- [ ] `GET /api/nutrition/daily`: sum of active meals for that local day, plus the goal in effect on that date.
-- [ ] Integration tests for: idempotent double save, a stale-version PATCH → 409, a date move updating two days, delete → undo → delete → purge.
+- [x] `POST /api/meals` with an `Idempotency-Key` (store the response in `idempotency_keys` and replay it on retry), server-side recalculation, and a `meal_revisions` row with reason `created`.
+- [x] `GET /api/meals` (cursor pagination by `consumed_at, id`; `from`/`to` in the user's time zone; `q` uses the trigram index), and `GET /api/meals/:id`.
+- [x] `PATCH /api/meals/:id`: optimistic concurrency on `version`, recalculation, a revision row, and summaries for both the old and new day if the date moved. Mark changed items `edited_by_user`.
+- [x] `DELETE /api/meals/:id` → `pending_deletion` + `deleted_at`; it is excluded from all totals immediately. `POST /api/meals/:id/undo` within 10 s.
+- [x] A purge job: a Vercel Cron route (`/api/cron/purge`, protected by `CRON_SECRET`) every 5 minutes hard-deletes meals pending for more than 10 s, abandoned `temporary_uploads`, and `idempotency_keys` older than 24 h. (Rows that are pending but past their window are already invisible, so a coarse schedule is fine.)
+- [x] `GET /api/nutrition/daily`: sum of active meals for that local day, plus the goal in effect on that date.
+- [x] Integration tests for: idempotent double save, a stale-version PATCH → 409, a date move updating two days, delete → undo → delete → purge.
 
 **Done when:** the tests pass. **(H4, part)**
 
