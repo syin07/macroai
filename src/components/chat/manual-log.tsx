@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { saveMealsRequestSchema } from "@/lib/validation/meal";
 import { createSaveAction } from "@/lib/api";
 import { useSaveMeals } from "@/hooks/use-api";
 import {
@@ -12,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// Minimal working manual entry for the A5 cap-reached path; A10 adds its full composer menu.
+// Manual nutrition is sent unchanged; server totals remain authoritative.
 export function ManualLog({
   open,
   onOpenChange,
@@ -22,6 +23,7 @@ export function ManualLog({
 }) {
   const save = useSaveMeals();
   const action = useRef<ReturnType<typeof createSaveAction> | null>(null);
+  const submitting = useRef(false);
   const [validation, setValidation] = useState("");
   const [date] = useState(() =>
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -54,7 +56,7 @@ export function ManualLog({
           }}
           onSubmit={async (event) => {
             event.preventDefault();
-            if (save.isPending) return;
+            if (submitting.current || save.isPending) return;
             const data = new FormData(event.currentTarget);
             const name = String(data.get("name")).trim();
             const date = new Date(String(data.get("date")));
@@ -94,12 +96,26 @@ export function ManualLog({
                 },
               ],
             });
+            const checked = saveMealsRequestSchema.safeParse(
+              action.current.body,
+            );
+            if (!checked.success) {
+              setValidation(
+                checked.error.issues[0]?.message ||
+                  "Check your nutrition values.",
+              );
+              action.current = null;
+              return;
+            }
+            submitting.current = true;
             try {
               await save.mutateAsync(action.current);
               action.current = null;
               onOpenChange(false);
             } catch {
               /* Keep form and action for retry. */
+            } finally {
+              submitting.current = false;
             }
           }}
           className="space-y-4"
@@ -110,7 +126,7 @@ export function ManualLog({
               <Input
                 name="name"
                 required
-                maxLength={200}
+                maxLength={120}
                 className="min-h-11"
               />
             </label>
@@ -129,7 +145,7 @@ export function ManualLog({
                     name={name}
                     type="number"
                     min="0"
-                    max="100000"
+                    max={name === "calories" ? 50000 : 5000}
                     step="0.1"
                     required
                     className="min-h-11"

@@ -9,7 +9,7 @@ import {
 } from "react";
 import { ArrowDown, ArrowUp, Camera, Plus } from "lucide-react";
 import { ApiClientError, createChatDraft, type ChatDraft } from "@/lib/api";
-import { useMessages, useSendChat } from "@/hooks/use-api";
+import { useMessages, useSendChat, useManualMessages } from "@/hooks/use-api";
 import type { ChatMessage } from "@/types/api";
 import { Brand } from "@/components/shared/brand";
 import { HeaderLink } from "@/components/shared/page-frame";
@@ -28,6 +28,7 @@ const prompts = [
 
 export function ChatScreen() {
   const history = useMessages();
+  const manualMessages = useManualMessages();
   const send = useSendChat();
   const [text, setText] = useState("");
   const [image, setImage] = useState<Blob | undefined>();
@@ -50,7 +51,23 @@ export function ChatScreen() {
   const loadingEarlier = useRef(false);
   const sending = useRef(false);
   const initialScroll = useRef(false);
-  const messages = history.data?.messages ?? [];
+  const serverMessages = history.data?.messages ?? [];
+  const linked = new Set(
+    serverMessages.flatMap((message) =>
+      message.cards.flatMap((card) =>
+        card.kind === "meal" ? [card.meal_id] : [],
+      ),
+    ),
+  );
+  const messages = [
+    ...serverMessages,
+    ...manualMessages.flatMap((message) => {
+      const cards = message.cards.filter(
+        (card) => card.kind === "meal" && !linked.has(card.meal_id),
+      );
+      return cards.length ? [{ ...message, cards }] : [];
+    }),
+  ];
   const historyUnavailable = history.isError && !history.data;
   const shownLocal =
     local &&
@@ -467,7 +484,7 @@ export function ChatScreen() {
           </p>
         </div>
       </div>
-      <ManualLog open={manual} onOpenChange={setManual} />
+      {manual && <ManualLog open onOpenChange={setManual} />}
     </section>
   );
 }

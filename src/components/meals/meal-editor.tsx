@@ -29,6 +29,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import { MealActions } from "./meal-actions";
 import {
   buildItem,
   buildValue,
@@ -657,6 +658,13 @@ export function MealEditor({
                     : "Save changes"}
             </button>
           </div>
+          {target.kind === "meal" && (
+            <MealActions
+              id={target.meal.id}
+              disabled={busy || locked}
+              onDeleted={onClose}
+            />
+          )}
         </div>
       </form>
     </>

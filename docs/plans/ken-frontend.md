@@ -147,6 +147,8 @@ A7 implementation is on `ken/a7-meal-editor`, pending review/merge. Includes mob
 - [ ] Delete flow (from card, editor, or history): call `deleteMeal` → a toast "Meal deleted · Undo" until `undo_until` → `undoDelete` on tap.
 - [ ] Manual logging: a "+" action in the composer menu opens a form (name, kcal, protein, carbs, fat, date/time) → `saveMeals` with `source_type: "manual"`. The result appears in chat as a saved card.
 
+Combined A9/A10 implementation is on `ken/a9-a10-dashboard-save-modes`, pending review/merge. The chat summary includes compact macro bars, an SVG calorie ring, consumed/target/remaining values, neutral overflow styling, and a timezone-aware timeline opening A7's editor. Returned daily summaries update totals without another daily fetch. Newly received auto-saved cards offer Undo for 10 seconds; deletion uses the server's `undo_until`, with shared notifications, retry, expiry handling, and restoration. Cards and the editor share deletion actions; History will reuse them in A11. Manual logging validates through the shared schema, preserves retry identity, and inserts the returned saved meal into chat. This immediate manual card is kept in private browser memory and deduplicated against server messages; cross-device/reload chat placement depends on the backend emitting the linked message (the mock does). `/auth/dashboard-preview` is development-only and unavailable in production. Real H4/H6 integration and physical-device checks remain open; do not tick acceptance boxes before merge.
+
 ## A11 — History screen
 
 - [ ] An infinite list grouped by day (sticky day headers showing that day's kcal total), newest first, from `useMeals()`.

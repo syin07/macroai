@@ -2,7 +2,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiClientError, createSaveAction } from "@/lib/api";
-import { useDaily, useSaveMeals } from "@/hooks/use-api";
+import { useDaily, useSaveMeals, useMealActions } from "@/hooks/use-api";
+import { MealActions } from "./meal-actions";
 import type {
   ChatMessage,
   Meal,
@@ -65,26 +66,37 @@ export function MessageMealCards({
     client.setQueryData<CardUi>(key, (old) => change(old ?? emptyUi));
   const save = useSaveMeals();
   const daily = useDaily();
+  const mealActions = useMealActions();
   const [editing, setEditing] = useState<{
     target: EditorTarget;
     item?: number;
   } | null>(null);
-  const cards: MealCardData[] = message.cards.map((card) => {
-    if (card.kind !== "proposal") {
-      const local = ui.meals?.[card.meal_id];
-      return card.meal && local && local.version > card.meal.version
-        ? { ...card, meal: local }
-        : card;
-    }
-    const local = ui.proposals[card.proposal.proposal_id];
-    if (local?.saved)
-      return { kind: "meal", meal_id: local.saved.id, meal: local.saved };
-    return {
-      ...card,
-      state: local?.discarded ? "discarded" : card.state,
-      proposal: local?.proposal ?? card.proposal,
-    };
-  });
+  const cards: MealCardData[] = message.cards
+    .map<MealCardData>((card) => {
+      if (card.kind !== "proposal") {
+        const local = ui.meals?.[card.meal_id];
+        return card.meal && local && local.version > card.meal.version
+          ? { ...card, meal: local }
+          : card;
+      }
+      const local = ui.proposals[card.proposal.proposal_id];
+      if (local?.saved)
+        return { kind: "meal", meal_id: local.saved.id, meal: local.saved };
+      return {
+        ...card,
+        state: local?.discarded ? "discarded" : card.state,
+        proposal: local?.proposal ?? card.proposal,
+      };
+    })
+    .map((card) =>
+      card.kind === "meal" &&
+      mealActions[card.meal_id]?.meal !== undefined &&
+      (mealActions[card.meal_id].meal === null ||
+        !card.meal ||
+        mealActions[card.meal_id].meal!.version >= card.meal.version)
+        ? { ...card, meal: mealActions[card.meal_id].meal ?? null }
+        : card,
+    );
   const ready = [
     ...new Map(
       cards.flatMap((card) =>
@@ -160,6 +172,14 @@ export function MessageMealCards({
             card.kind === "proposal" ? card.proposal.proposal_id : card.meal_id
           }
           card={card}
+          actions={
+            card.kind === "meal" ? (
+              <MealActions
+                id={card.meal_id}
+                disabled={ui.pending || !!ui.action}
+              />
+            ) : undefined
+          }
           timezone={daily.data?.timezone}
           busy={ui.pending}
           locked={!!ui.action}
