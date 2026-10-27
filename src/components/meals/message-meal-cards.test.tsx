@@ -60,11 +60,22 @@ const saved = (action: ReturnType<typeof api.createSaveAction>) => ({
   daily_summary: daily,
 });
 beforeEach(() => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
   vi.clearAllMocks();
   vi.mocked(api.getDaily).mockResolvedValue(daily);
   vi.mocked(api.saveMeals).mockImplementation(async (action) => saved(action));
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 function mount(
   msg = message(),
   client = new QueryClient({
@@ -138,7 +149,7 @@ it("discarding a proposal excludes it from Save all and survives a server-prop r
       .mock.calls[0][0].body.meals.map((meal) => meal.proposal_id),
   ).not.toContain(f.single.proposal_id);
 });
-it("edits proposal details locally, then saves the edited values without changing nutrition", async () => {
+it("saves edited proposal details through the full editor", async () => {
   mount();
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
   fireEvent.change(screen.getByLabelText("Meal name"), {
@@ -147,11 +158,10 @@ it("edits proposal details locally, then saves the edited values without changin
   fireEvent.change(screen.getByLabelText("Consumed at"), {
     target: { value: "2026-10-25T09:00" },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Apply changes" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save meal" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   expect(screen.getByRole("region", { name: "Late breakfast" })).toBeTruthy();
-  expect(api.saveMeals).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  expect(api.saveMeals).toHaveBeenCalledTimes(1);
   await screen.findByText("Saved");
   const input = vi.mocked(api.saveMeals).mock.calls[0][0].body.meals[0];
   expect(input.name).toBe("Late breakfast");

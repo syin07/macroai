@@ -80,9 +80,19 @@ discard state, and pending retry actions live only in the private browser-memory
 query cache; navigation preserves them, while reload/sign-out clears them. The
 current API has no route to persist a discarded proposal across devices.
 
-A6's Edit action changes an unsaved proposal's name and consumed time. Full
-portion/item editing and saved-meal edits are part of A7. Saves use server-returned
-nutrition totals. Save all sends one request with one retained idempotency key.
+A7's editor opens as a mobile drawer or desktop dialog. It edits names, time,
+quantity/unit/grams, and items; a card's Edit grams action focuses that item.
+Database portions use the shared calculator. Explicit overrides become Manual;
+new foods need portion totals or label values per 100 g. Saves use server-returned
+nutrition totals. Save all still sends one request with one retained key.
+
+After H2's default-deny proxy, the mock-only preview is also available at
+`/auth/meal-editor-preview`. It is a public development page, not an authenticated
+app session, and returns 404 in production or when mock mode is off. The proxy
+still needs the public Supabase settings from `.env.example`; backend auth rules
+are unchanged. The preview's saved card uses a real in-memory record, and
+"Change saved meal elsewhere" exercises version conflicts. A conflict fetches the
+latest meal but keeps edits until the user explicitly loads it and saves again.
 
 ## Project documentation
 

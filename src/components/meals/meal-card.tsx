@@ -46,6 +46,7 @@ export function MealCard({
   onEdit,
   onDiscard,
   onClarify,
+  onEditItem,
 }: {
   card: MealCardData;
   timezone?: string;
@@ -56,6 +57,7 @@ export function MealCard({
   onEdit?: () => void;
   onDiscard?: () => void;
   onClarify?: () => void;
+  onEditItem?: (index: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
@@ -168,7 +170,13 @@ export function MealCard({
                       {number(item.macros.calories)} kcal
                     </p>
                   </div>
-                  <p className="mt-1 flex flex-wrap items-center gap-1 text-sm tabular-nums text-muted-foreground">
+                  <button
+                    type="button"
+                    disabled={!onEditItem || busy || locked}
+                    onClick={() => onEditItem?.(index)}
+                    aria-label={`Edit grams for ${item.food_name}`}
+                    className="mt-1 flex min-h-11 w-full flex-wrap items-center gap-1 text-left text-sm tabular-nums text-muted-foreground"
+                  >
                     {number(item.quantity)} {item.unit}
                     {item.grams !== null && ` · ${number(item.grams)} g`}
                     {item.confidence === "low" && (
@@ -180,7 +188,12 @@ export function MealCard({
                         Portion uncertain
                       </span>
                     )}
-                  </p>
+                    {onEditItem && (
+                      <span className="ml-auto text-xs text-[var(--app-accent)]">
+                        Edit grams
+                      </span>
+                    )}
+                  </button>
                   <div className="mt-1">
                     <MacroLine macros={item.macros} />
                   </div>
@@ -259,6 +272,18 @@ export function MealCard({
               Discard
             </button>
           </div>
+        </div>
+      )}
+      {!unsaved && onEdit && (
+        <div className="border-t border-[var(--app-line)] px-4 py-1">
+          <button
+            type="button"
+            className="chat-text-button"
+            disabled={busy || locked}
+            onClick={onEdit}
+          >
+            Edit meal
+          </button>
         </div>
       )}
     </section>

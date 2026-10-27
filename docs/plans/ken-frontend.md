@@ -121,6 +121,8 @@ A6 merged in PR #15 at Ken’s request, with CI and the production build passing
 
 **Done when:** editing grams updates totals instantly, and save works in mock mode (and in real mode after **H6**).
 
+A7 implementation is on `ken/a7-meal-editor`, pending review/merge. Includes mobile Drawer/desktop Dialog, one-tap grams focus, quantity/unit conversion, item add/remove and repeated portions, manual overrides and label-per-100g entries, validation through Sandy's schemas, and previews through `src/lib/nutrition/calc.ts`. New foods require entered nutrition rather than guesses from name/weight. Edited proposals retain their save key on retry; saved edits retain item IDs and versions. A 409 fetches the latest meal, keeps the user's draft visible, and requires explicit loading/review before saving again. `/auth/meal-editor-preview` is a public, development-only mock page under the existing public auth namespace; production still returns 404. H6 real endpoint and physical phone checks remain pending; boxes stay open until merge.
+
 ## A8 — Photo input
 
 - [ ] Photo button → a hidden `<input type="file" accept="image/*" capture="environment">`. Add a second option, "Choose from library", using the same input without `capture`.

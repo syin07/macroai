@@ -13,7 +13,7 @@ import type {
 } from "@/types/api";
 import { useState } from "react";
 import { MealCard } from "./meal-card";
-import { ProposalDetailsDialog } from "./proposal-details-dialog";
+import { MealEditor, type EditorTarget } from "./meal-editor";
 
 type ProposalUi = {
   discarded?: boolean;
@@ -26,6 +26,7 @@ type CardUi = {
   pending: boolean;
   error: string | null;
   canRevise: boolean;
+  meals?: Record<string, Meal>;
 };
 const emptyUi: CardUi = {
   proposals: {},
@@ -64,9 +65,17 @@ export function MessageMealCards({
     client.setQueryData<CardUi>(key, (old) => change(old ?? emptyUi));
   const save = useSaveMeals();
   const daily = useDaily();
-  const [editing, setEditing] = useState<MealProposal | null>(null);
+  const [editing, setEditing] = useState<{
+    target: EditorTarget;
+    item?: number;
+  } | null>(null);
   const cards: MealCardData[] = message.cards.map((card) => {
-    if (card.kind !== "proposal") return card;
+    if (card.kind !== "proposal") {
+      const local = ui.meals?.[card.meal_id];
+      return card.meal && local && local.version > card.meal.version
+        ? { ...card, meal: local }
+        : card;
+    }
     const local = ui.proposals[card.proposal.proposal_id];
     if (local?.saved)
       return { kind: "meal", meal_id: local.saved.id, meal: local.saved };
@@ -168,8 +177,40 @@ export function MessageMealCards({
           }
           onEdit={
             card.kind === "proposal"
-              ? () => setEditing(card.proposal)
-              : undefined
+              ? sourceType
+                ? () =>
+                    setEditing({
+                      target: {
+                        kind: "proposal",
+                        proposal: card.proposal,
+                        sourceType,
+                      },
+                    })
+                : undefined
+              : card.meal
+                ? () =>
+                    setEditing({ target: { kind: "meal", meal: card.meal! } })
+                : undefined
+          }
+          onEditItem={
+            card.kind === "proposal" && !sourceType
+              ? undefined
+              : (item) => {
+                  if (card.kind === "proposal")
+                    setEditing({
+                      target: {
+                        kind: "proposal",
+                        proposal: card.proposal,
+                        sourceType,
+                      },
+                      item,
+                    });
+                  else if (card.meal)
+                    setEditing({
+                      target: { kind: "meal", meal: card.meal },
+                      item,
+                    });
+                }
           }
           onDiscard={
             card.kind === "proposal"
@@ -258,20 +299,31 @@ export function MessageMealCards({
         {ui.pending ? "Saving meals…" : save.isSuccess ? "Meals saved." : ""}
       </p>
       {editing && (
-        <ProposalDetailsDialog
-          proposal={editing}
+        <MealEditor
+          target={editing.target}
+          initialItem={editing.item}
           onClose={() => setEditing(null)}
-          onChange={(proposal) =>
-            update((old) => ({
-              ...old,
-              proposals: {
-                ...old.proposals,
-                [proposal.proposal_id]: {
-                  ...old.proposals[proposal.proposal_id],
-                  proposal,
-                },
-              },
-            }))
+          onSaved={(meal) =>
+            update((old) => {
+              const proposals = Object.fromEntries(
+                Object.entries(old.proposals).map(([id, state]) => [
+                  id,
+                  state.saved?.id === meal.id
+                    ? { ...state, saved: meal }
+                    : state,
+                ]),
+              );
+              if (editing.target.kind === "proposal")
+                proposals[editing.target.proposal.proposal_id] = {
+                  ...proposals[editing.target.proposal.proposal_id],
+                  saved: meal,
+                };
+              return {
+                ...old,
+                proposals,
+                meals: { ...old.meals, [meal.id]: meal },
+              };
+            })
           }
         />
       )}
