@@ -18,9 +18,9 @@ Ground rules for every step:
 ## B0 — Contracts first (with Ken)
 
 - [ ] Walk through `shared-contracts.md` together with Ken; change anything either of you dislikes now, while it's cheap.
-- [ ] Write `src/types/api.ts` exactly as in the contracts doc.
-- [ ] Write matching Zod schemas in `src/lib/validation/` (`meal.ts`, `chat.ts`, `goals.ts`, `preferences.ts`, `errors.ts`), plus `src/lib/api-error.ts` with a helper that returns `ApiError` responses with the right status codes.
-- [ ] **(H1)** Merge, and tell Ken.
+- [x] Write `src/types/api.ts` exactly as in the contracts doc.
+- [x] Write matching Zod schemas in `src/lib/validation/` (`meal.ts`, `chat.ts`, `goals.ts`, `preferences.ts`, `errors.ts`), plus `src/lib/api-error.ts` with a helper that returns `ApiError` responses with the right status codes.
+- [x] **(H1)** Merge, and tell Ken.
 
 **Done when:** Ken can import every type, and `tsc` passes.
 
