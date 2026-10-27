@@ -118,11 +118,11 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B8 — Chat endpoint with tools
 
-- [ ] `src/lib/ai/tools.ts`: implement the PRD §5.7 tools as plain server functions that take `userId` from the session (never from the model): `search_nutrition_foods`, `get_food_nutrition`, `create_meal_proposal` (wraps B6), `save_meal`, `update_meal`, `delete_meal`, `get_daily_totals`, `search_meal_history`, `get_nutrition_goals`, `search_user_memories`, `save_user_memory`, `delete_user_memory`. Validate each tool's input with Zod.
-- [ ] `src/lib/ai/context.ts`: build the context package: system prompt (tone from PRD FR-05, today's date, the user's timezone, save mode), the last 12 messages, today's `DailySummary`, the top relevant memories (keyword match is fine for MVP), and IDs of the last few meals for corrections. Keep it under ~6K tokens.
-- [ ] `POST /api/ai/chat`: parse the multipart body, check `client_message_id` for replay, insert the user message (`had_image`, no image bytes), run the tool loop (max 6 steps), apply save mode (`confirm` → return proposal cards; `auto` → call `save_meal` unless `needs_clarification`), insert the assistant message with its cards, and return the contract response.
-- [ ] Prompt rules: never claim a save that didn't happen (only say "saved" if `save_meal` returned success); answer account questions only from tool results; never change goals.
-- [ ] `GET /api/messages` (cursor by `created_at, id`), `DELETE /api/messages/:id`. When serving messages, re-hydrate `kind: "meal"` cards with current meal data (`null` if deleted).
+- [x] `src/lib/ai/tools.ts`: implement the PRD §5.7 tools as plain server functions that take `userId` from the session (never from the model): `search_nutrition_foods`, `get_food_nutrition`, `create_meal_proposal` (wraps B6), `save_meal`, `update_meal`, `delete_meal`, `get_daily_totals`, `search_meal_history`, `get_nutrition_goals`, `search_user_memories`, `save_user_memory`, `delete_user_memory`. Validate each tool's input with Zod.
+- [x] `src/lib/ai/context.ts`: build the context package: system prompt (tone from PRD FR-05, today's date, the user's timezone, save mode), the last 12 messages, today's `DailySummary`, the top relevant memories (keyword match is fine for MVP), and IDs of the last few meals for corrections. Keep it under ~6K tokens.
+- [x] `POST /api/ai/chat`: parse the multipart body, check `client_message_id` for replay, insert the user message (`had_image`, no image bytes), run the tool loop (max 6 steps), apply save mode (`confirm` → return proposal cards; `auto` → call `save_meal` unless `needs_clarification`), insert the assistant message with its cards, and return the contract response.
+- [x] Prompt rules: never claim a save that didn't happen (only say "saved" if `save_meal` returned success); answer account questions only from tool results; never change goals.
+- [x] `GET /api/messages` (cursor by `created_at, id`), `DELETE /api/messages/:id`. When serving messages, re-hydrate `kind: "meal"` cards with current meal data (`null` if deleted).
 - [ ] **(H4)** Tell Ken text chat is live.
 
 **Done when:** "2 eggs and toast" → proposal card → save → daily summary updates, through the real UI or `curl`.

@@ -5,6 +5,7 @@ import {
   itemMacros,
   mealTotals,
   remaining,
+  resizeItem,
   round1,
   round1Macros,
   scaleMacros,
@@ -145,5 +146,44 @@ describe("round1", () => {
 
   it("rounds every field of a Macros", () => {
     expect(round1Macros(itemMacros(chicken, 150))).toEqual({ calories: 226.5, protein_g: 45.8, carbs_g: 0, fat_g: 4.8 });
+  });
+});
+
+describe("resizeItem", () => {
+  const riceCup = { quantity: 1, unit: "cup", grams: 160, basis_per_100g: rice, macros: itemMacros(rice, 160) };
+  const aiPizza = {
+    quantity: 2,
+    unit: "slice",
+    grams: 214,
+    basis_per_100g: null,
+    macros: { calories: 570, protein_g: 24, carbs_g: 70, fat_g: 20 },
+  };
+
+  it("re-derives macros from the basis when the weight changes (200 g of rice = 260 kcal)", () => {
+    const resized = resizeItem(riceCup, { grams: 200 });
+    expect(resized.grams).toBe(200);
+    expect(resized.quantity).toBeCloseTo(1.25, 9);
+    expectMacrosClose(resized.macros, { calories: 260, protein_g: 4.76, carbs_g: 57.18, fat_g: 0.42 });
+  });
+
+  it("scales weight and macros with a new quantity", () => {
+    const resized = resizeItem(riceCup, { quantity: 0.5 });
+    expect(resized.grams).toBe(80);
+    expectMacrosClose(resized.macros, itemMacros(rice, 80));
+  });
+
+  it("scales AI-only estimates proportionally (I only ate one of the two slices)", () => {
+    const resized = resizeItem(aiPizza, { quantity: 1 });
+    expect(resized.grams).toBe(107);
+    expectMacrosClose(resized.macros, { calories: 285, protein_g: 12, carbs_g: 35, fat_g: 10 });
+  });
+
+  it("refuses a new weight when there is nothing to scale from", () => {
+    expect(() => resizeItem({ ...aiPizza, grams: null }, { grams: 100 })).toThrow(RangeError);
+  });
+
+  it("returns the item unchanged when no amount is given, and rejects negatives", () => {
+    expect(resizeItem(riceCup, {})).toBe(riceCup);
+    expect(() => resizeItem(riceCup, { grams: -1 })).toThrow(RangeError);
   });
 });

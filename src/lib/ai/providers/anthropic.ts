@@ -64,7 +64,7 @@ export class AnthropicProvider implements AIProvider {
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: EXTRACTION_MAX_OUTPUT_TOKENS,
-      system: input.system,
+      system: chatSystemBlocks(input),
       messages: input.messages.map(toAnthropicMessage),
       tools: input.tools.map((tool) => ({
         name: tool.name,
@@ -83,8 +83,20 @@ export class AnthropicProvider implements AIProvider {
       stopReason: STOP_REASONS[response.stop_reason ?? ""] ?? "other",
       usage: toUsage(response.usage),
       model: response.model,
+      // Includes thinking blocks, which must go back unchanged with the tool calls they led to.
+      providerContent: response.content,
     };
   }
+}
+
+// Render order is tools → system → messages, so a breakpoint on the stable system block caches the
+// tool list and the instructions together. The per-request context comes after it, uncached.
+export function chatSystemBlocks(input: Pick<ChatInput, "system" | "context">): Anthropic.TextBlockParam[] {
+  const blocks: Anthropic.TextBlockParam[] = [
+    { type: "text", text: input.system, cache_control: { type: "ephemeral" } },
+  ];
+  if (input.context) blocks.push({ type: "text", text: input.context });
+  return blocks;
 }
 
 const STOP_REASONS: Record<string, ProviderTurn["stopReason"]> = {
@@ -108,11 +120,14 @@ function toUsage(usage: Anthropic.Usage): TokenUsage {
   };
 }
 
-function toAnthropicMessage(message: ProviderMessage): Anthropic.MessageParam {
+export function toAnthropicMessage(message: ProviderMessage): Anthropic.MessageParam {
   switch (message.role) {
     case "user":
       return { role: "user", content: message.text };
     case "assistant": {
+      if (Array.isArray(message.providerContent)) {
+        return { role: "assistant", content: message.providerContent as Anthropic.ContentBlockParam[] };
+      }
       const content: Anthropic.ContentBlockParam[] = [];
       if (message.text) content.push({ type: "text", text: message.text });
       for (const call of message.toolCalls) {

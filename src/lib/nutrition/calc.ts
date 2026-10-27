@@ -73,3 +73,38 @@ export function round1Macros(macros: Macros): Macros {
     fat_g: round1(macros.fat_g),
   };
 }
+
+export interface AmountChange {
+  quantity?: number; // new amount in the item's own unit
+  grams?: number;    // new weight in grams
+}
+
+// A corrected amount ("make that 200 g", "I only ate half"). With a basis and a weight, macros are
+// re-derived from grams; otherwise (AI or manual estimates) they scale with the amount. Throws
+// RangeError when the change can't be applied: a new weight for an item with no basis and no known
+// weight leaves nothing to scale from.
+export function resizeItem<T extends Pick<MealItem, "quantity" | "grams" | "basis_per_100g" | "macros">>(
+  item: T,
+  change: AmountChange,
+): T {
+  if (change.quantity !== undefined) assertAmount(change.quantity, "quantity");
+  if (change.grams !== undefined) assertAmount(change.grams, "grams");
+  if (change.quantity === undefined && change.grams === undefined) return item;
+
+  // How much the amount changed: the quantity ratio if given, else the weight ratio when known.
+  const factor =
+    change.quantity !== undefined && item.quantity > 0
+      ? change.quantity / item.quantity
+      : change.grams !== undefined && item.grams !== null && item.grams > 0
+        ? change.grams / item.grams
+        : null;
+
+  const grams = change.grams ?? (item.grams !== null && factor !== null ? item.grams * factor : item.grams);
+  const quantity = change.quantity ?? (factor !== null ? item.quantity * factor : item.quantity);
+
+  if (item.basis_per_100g !== null && grams !== null) {
+    return { ...item, quantity, grams, macros: itemMacros(item.basis_per_100g, grams) };
+  }
+  if (factor === null) throw new RangeError("No basis or known amount to scale this item from");
+  return { ...item, quantity, grams, macros: scaleMacros(item.macros, factor) };
+}

@@ -5,6 +5,7 @@ import { extractionJsonSchema, parseExtractionOutput, type TokenUsage } from "..
 import { EXTRACT_MEAL_PROMPT_VERSION, EXTRACT_MEAL_SYSTEM_PROMPT, buildExtractMealUserText } from "../prompts/extract-meal";
 import {
   imageToBase64,
+  joinSystem,
   type AIProvider,
   type ChatInput,
   type ExtractMealInput,
@@ -81,7 +82,7 @@ export class GeminiProvider implements AIProvider {
       model: this.model,
       contents: input.messages.map(toGeminiContent),
       config: {
-        systemInstruction: input.system,
+        systemInstruction: joinSystem(input),
         maxOutputTokens: EXTRACTION_MAX_OUTPUT_TOKENS,
         thinkingConfig: { thinkingLevel: this.thinkingLevel },
         tools: [
