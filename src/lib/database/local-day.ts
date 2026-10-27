@@ -21,3 +21,16 @@ export function startOfLocalDay(date: string, timezone: string): string {
 export function localDayBounds(date: string, timezone: string): { start: string; end: string } {
   return { start: startOfLocalDay(date, timezone), end: startOfLocalDay(addDays(date, 1), timezone) };
 }
+
+// Instant bounds for an inclusive range of local dates (either end optional), as listMeals() takes
+// them: `to` is inclusive, so its bound is the next local midnight.
+export function localDateRange(
+  from: string | null | undefined,
+  to: string | null | undefined,
+  timezone: string,
+): { from: string | null; to: string | null } {
+  return {
+    from: from ? startOfLocalDay(from, timezone) : null,
+    to: to ? startOfLocalDay(addDays(to, 1), timezone) : null,
+  };
+}
