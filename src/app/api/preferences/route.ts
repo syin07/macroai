@@ -1,15 +1,9 @@
-import { z } from "zod";
-import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { requireUser } from "@/lib/auth/server";
 import { getPreferences, updatePreferences } from "@/lib/database/preferences";
 import { patchPreferencesRequestSchema } from "@/lib/validation";
+import { handleRouteError } from "../_lib/route";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
-
-function logFailure(route: string, error: unknown) {
-  if (error instanceof ApiErrorException || error instanceof z.ZodError) return;
-  console.error(`${route} failed:`, error);
-}
 
 // GET /api/preferences → Preferences
 export async function GET() {
@@ -17,8 +11,7 @@ export async function GET() {
     const { user, supabase } = await requireUser();
     return Response.json(await getPreferences(supabase, user.id), { headers: NO_STORE });
   } catch (error) {
-    logFailure("GET /api/preferences", error);
-    return toErrorResponse(error);
+    return handleRouteError("GET /api/preferences", error);
   }
 }
 
@@ -30,7 +23,6 @@ export async function PATCH(request: Request) {
     const patch = patchPreferencesRequestSchema.parse(await request.json().catch(() => null));
     return Response.json(await updatePreferences(supabase, user.id, patch), { headers: NO_STORE });
   } catch (error) {
-    logFailure("PATCH /api/preferences", error);
-    return toErrorResponse(error);
+    return handleRouteError("PATCH /api/preferences", error);
   }
 }
