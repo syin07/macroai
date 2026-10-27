@@ -19,7 +19,7 @@ Ground rules for every step:
 ## A0 — Contracts first (with Sandy)
 
 - [ ] Walk through `shared-contracts.md` together with Sandy; push back now on anything awkward for the UI (e.g. fields you need on a card).
-- [ ] After **H1**, import the types from `src/types/api.ts`. Never redefine them locally.
+- [x] After **H1**, import the types from `src/types/api.ts`. Never redefine them locally.
 
 ## A1 — Project scaffold
 
@@ -41,28 +41,28 @@ Scaffold handoff: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defau
 
 ## A2 — API client and mocks
 
-- [ ] `src/lib/api/client.ts`: a `request<T>(method, path, body?)` that parses `ApiError` into a typed `ApiClientError` (with `code`, `message`, `retryable`), handles `401` → redirect to `/sign-in` and `403 not_approved` → `/not-approved`, and switches to mocks when `NEXT_PUBLIC_USE_MOCKS=1`.
-- [ ] `src/lib/api/*.ts`: one typed function per endpoint in the contracts (`sendChat`, `getMessages`, `saveMeals`, `getMeals`, `getMeal`, `updateMeal`, `deleteMeal`, `undoDelete`, `getDaily`, `getMe`, `getGoals`, `putGoals`, `suggestGoals`, `getPreferences`, `patchPreferences`, `completeOnboarding`, `getMemories`, `patchMemory`, `deleteMemory`, `exportData`, `deleteAccount`).
-- [ ] `sendChat` builds `multipart/form-data` and generates `client_message_id` with `crypto.randomUUID()`. On retry, reuse the same ID.
-- [ ] `saveMeals` sends `Idempotency-Key` (the `proposal_id` for one card; a new UUID for save-all and manual entries, reused on retry).
-- [ ] `src/mocks/`: the fixtures listed in contracts §4, plus an in-memory mock "database" so save → daily summary → history behaves realistically in mock mode.
-- [ ] TanStack Query hooks in `src/hooks/` (`useDaily(date)`, `useMessages()` infinite query, `useMeals(filters)` infinite query, `useMe()`, `usePreferences()`, `useGoals()`, `useMemories()`). After any meal mutation, update the `daily` cache from the returned `daily_summary` instead of refetching.
+- [x] `src/lib/api/client.ts`: a `request<T>(method, path, body?)` that parses `ApiError` into a typed `ApiClientError` (with `code`, `message`, `retryable`), handles `401` → redirect to `/sign-in` and `403 not_approved` → `/not-approved`, and switches to mocks when `NEXT_PUBLIC_USE_MOCKS=1`.
+- [x] `src/lib/api/*.ts`: one typed function per endpoint in the contracts (`sendChat`, `getMessages`, `saveMeals`, `getMeals`, `getMeal`, `updateMeal`, `deleteMeal`, `undoDelete`, `getDaily`, `getMe`, `getGoals`, `putGoals`, `suggestGoals`, `getPreferences`, `patchPreferences`, `completeOnboarding`, `getMemories`, `patchMemory`, `deleteMemory`, `exportData`, `deleteAccount`).
+- [x] `sendChat` builds `multipart/form-data` and generates `client_message_id` with `crypto.randomUUID()`. On retry, reuse the same ID.
+- [x] `saveMeals` sends `Idempotency-Key` (the `proposal_id` for one card; a new UUID for save-all and manual entries, reused on retry).
+- [x] `src/mocks/`: the fixtures listed in contracts §4, plus an in-memory mock "database" so save → daily summary → history behaves realistically in mock mode.
+- [x] TanStack Query hooks in `src/hooks/` (`useDaily(date)`, `useMessages()` infinite query, `useMeals(filters)` infinite query, `useMe()`, `usePreferences()`, `useGoals()`, `useMemories()`). After any meal mutation, update the `daily` cache from the returned `daily_summary` instead of refetching.
 
 **Done when:** a scratch page can call every function in mock mode and show the results.
 
-A2 implementation is on `ken/a2-api-mocks`, pending Sandy's API-error-handling review and merge. Development playground: `/dev/api` with `NEXT_PUBLIC_USE_MOCKS=1`; it is unavailable in production. Chat drafts and save actions retain their IDs on retry, and mock records are kept only in memory.
+A2 merged in PR #3 after Sandy’s approval. The API transport skips auth redirects when already on the destination page, preventing reload loops. Development playground: `/dev/api` with `NEXT_PUBLIC_USE_MOCKS=1`; unavailable in production. Chat drafts and save actions retain their IDs on retry; mocks remain in memory.
 
 ## A3 — App shell and navigation
 
-- [ ] Route groups: `src/app/(auth)/{sign-in,sign-up,reset-password,not-approved}/page.tsx` and `src/app/(app)/{chat,history,insights,settings,onboarding}/page.tsx`. `/` redirects to `/chat`.
-- [ ] Mobile (< 768 px): a bottom tab bar with Chat / History / Insights / Settings (Lucide icons: `MessageCircle`, `History`, `ChartLine`, `Settings`), fixed, respecting the safe-area inset.
-- [ ] Desktop (≥ 768 px): a left sidebar with the same four links. Content is centered with `max-w-2xl` on chat and `max-w-3xl` elsewhere.
-- [ ] Small header: the app name plus a contextual action slot.
-- [ ] Apple-like feel: system font stack (`-apple-system, BlinkMacSystemFont, "Inter", …`), 12–16 px radii, subtle surfaces (`bg-muted/50`), generous spacing, no gradients, no bouncy animations (150–200 ms ease-out max).
+- [x] Route groups: `src/app/(auth)/{sign-in,sign-up,reset-password,not-approved}/page.tsx` and `src/app/(app)/{chat,history,insights,settings,onboarding}/page.tsx`. `/` redirects to `/chat`.
+- [x] Mobile (< 768 px): a bottom tab bar with Chat / History / Insights / Settings (Lucide icons: `MessageCircle`, `History`, `ChartLine`, `Settings`), fixed, respecting the safe-area inset.
+- [x] Desktop (≥ 768 px): a left sidebar with the same four links. Content is centered with `max-w-2xl` on chat and `max-w-3xl` elsewhere.
+- [x] Small header: the app name plus a contextual action slot.
+- [x] Apple-like feel: system font stack (`-apple-system, BlinkMacSystemFont, "Inter", …`), 12–16 px radii, subtle surfaces (`bg-muted/50`), generous spacing, no gradients, no bouncy animations (150–200 ms ease-out max).
 
 **Done when:** all four tabs navigate without full reloads on phone and desktop sizes in both themes.
 
-A3 implementation is on `ken/a3-app-shell`, stacked on A2 until review and merge. Includes all route shells, accessible current-page navigation, keyboard skip navigation, and safe-area spacing. Auth forms and the chat/history/settings features remain in their later plan steps. Browser checks cover all four tabs at 375/768/1280 px in both themes; physical-device checks remain in A15.
+A3 merged in PR #4 after Sandy’s approval. Includes the route shells, mobile tabs, desktop sidebar, safe-area spacing, and accessible navigation. Browser checks cover all four tabs at 375/768/1280 px in both themes. Physical-device checks remain A15.
 
 ## A4 — Auth screens
 
@@ -76,38 +76,38 @@ Build with mocks or stubs first; wire up after **H2**.
 
 **Done when (after H2):** both of you can sign in with Google and with email on the preview URL; a third account sees "not approved"; refreshing keeps you signed in.
 
-A4 UI is on `ken/a4-auth-screens`, stacked on A3 for review. `/dev/auth` exercises the mock-only flows. `src/lib/api/auth.ts` is the frontend adapter; it reports auth unavailable in production until H2 is wired. The new-password form requires a recovery session, not just a URL flag. Real OAuth, email delivery, approved-account enforcement, and session persistence remain unverified until H2; keep A4's acceptance boxes open until then.
+A4 UI merged in PR #9 after Sandy’s approval. `/dev/auth` exercises the mock-only flows. H2 backend auth plumbing is now merged, but the frontend adapter in `src/lib/api/auth.ts` still needs to delegate to Sandy’s helpers. Production authentication remains unavailable until that wiring is done. The new-password form requires a recovery session; a URL flag alone cannot authorize a change. Keep A4 acceptance boxes open until real OAuth, email delivery, approval enforcement, and session persistence are verified.
 
 ## A5 — Chat screen
 
 The core of the app. Spend the most polish here.
 
-- [ ] Layout (PRD §3.4): header → collapsible daily summary bar → message list → composer pinned to the bottom.
+- [x] Layout (PRD §3.4): header → collapsible daily summary bar → message list → composer pinned to the bottom.
 - [ ] Use `100dvh` and handle the mobile keyboard: the composer stays visible above it on iPhone Safari and Android Chrome (test both; use `visualViewport` resize if `dvh` alone isn't enough).
-- [ ] Message list: `useMessages()` infinite query; show the newest at the bottom; "load earlier" when scrolled to the top (keep scroll position steady when older messages are prepended); auto-scroll to the bottom on a new message only if the user was already near the bottom.
-- [ ] Bubbles: user messages right-aligned, assistant messages left-aligned and plain (no avatar clutter). Meal cards render inside the assistant message.
-- [ ] Sending: an optimistic user bubble (`status: pending`), then a typing indicator for the assistant. On error: mark the bubble failed, keep the text and photo in the composer, show "Retry" (same `client_message_id`). Handle `ai_cap_reached` with a "Log manually" button (opens A10's form).
-- [ ] Composer: an auto-growing textarea (max 5 lines), a photo button, a send button (disabled while empty or sending). Enter sends on desktop; on mobile, Enter adds a newline.
-- [ ] Empty state for a first-time user: 3 tappable example prompts ("2 eggs and toast", "Chicken bowl with double rice", "How much protein do I have left?").
+- [x] Message list: `useMessages()` infinite query; show the newest at the bottom; "load earlier" when scrolled to the top (keep scroll position steady when older messages are prepended); auto-scroll to the bottom on a new message only if the user was already near the bottom.
+- [x] Bubbles: user messages right-aligned, assistant messages left-aligned and plain (no avatar clutter). Meal cards render inside the assistant message.
+- [x] Sending: an optimistic user bubble (`status: pending`), then a typing indicator for the assistant. On error: mark the bubble failed, keep the text and photo in the composer, show "Retry" (same `client_message_id`). Handle `ai_cap_reached` with a "Log manually" button (opens A10's form).
+- [x] Composer: an auto-growing textarea (max 5 lines), a photo button, a send button (disabled while empty or sending). Enter sends on desktop; on mobile, Enter adds a newline.
+- [x] Empty state for a first-time user: 3 tappable example prompts ("2 eggs and toast", "Chicken bowl with double rice", "How much protein do I have left?").
 
 **Done when (mock mode):** sending text shows the right card fixtures, errors keep the draft, and scrolling back loads older pages smoothly.
 
-A5 implementation is on `ken/a5-chat-screen`, stacked on A4 for review. Includes chronological pagination with scroll anchoring, optimistic sends, retained text/photo drafts and same-ID retry, first-use prompts, a collapsible totals strip, and a minimal working manual-entry form for the AI-cap fallback. Meal cards are read-only until A6/A7; A8 adds camera/library choices, downscaling, and thumbnails (A5 accepts already-sized JPEGs only). A9 expands the summary and A10 completes save/undo/manual-card behavior. Browser sizes and both themes are checked; physical iPhone Safari/Android Chrome keyboard behavior and real endpoints remain unverified. Keep boxes open until merge and the relevant device/integration checks.
+A5 merged in PR #12 after Sandy’s approval. Includes chronological pagination, anchored scrollback, optimistic sends, retained text/photo drafts, same-ID retry, first-use prompts, a totals strip, and manual-entry fallback. Cards are now provided by A6. A8 still adds photo resizing/camera/library/thumbnails; A9 expands the summary and A10 completes save/undo/manual cards. Physical iPhone Safari/Android Chrome keyboard checks and real chat endpoint integration remain open.
 
 ## A6 — Meal card
 
 `src/components/meals/meal-card.tsx`.
 
-- [ ] Compact view: meal name, calories (large), P / C / F in grams, and a small "estimated" label when any item is `ai` or `inferred`.
-- [ ] States: `unsaved` (subtle dashed or outlined border; Save / Edit / Discard buttons), saved (a small check, no toast), `discarded` (collapsed, greyed: "Discarded"), deleted (`meal: null` → "This meal was deleted").
-- [ ] Expand (tap the card or a chevron): an item list with portion, macros, and a source badge (USDA / Open Food Facts / Label / Web / AI estimate / Manual; a link if `source_reference` is a URL); inferred items marked "assumed" in a muted style; a low-confidence dot on the portion; the `assumptions` text; the consumed-at time; totals.
-- [ ] Clarification: if `needs_clarification`, show `clarification_question` above the buttons, and focus the composer on tap.
-- [ ] Multiple proposals in one message: stacked cards plus one "Save all (3)" button. One request, one idempotency key.
-- [ ] Tap targets ≥ 44 px; macros use tabular numbers (`tabular-nums`).
+- [x] Compact view: meal name, calories (large), P / C / F in grams, and a small "estimated" label when any item is `ai` or `inferred`.
+- [x] States: `unsaved` (subtle dashed or outlined border; Save / Edit / Discard buttons), saved (a small check, no toast), `discarded` (collapsed, greyed: "Discarded"), deleted (`meal: null` → "This meal was deleted").
+- [x] Expand (tap the card or a chevron): an item list with portion, macros, and a source badge (USDA / Open Food Facts / Label / Web / AI estimate / Manual; a link if `source_reference` is a URL); inferred items marked "assumed" in a muted style; a low-confidence dot on the portion; the `assumptions` text; the consumed-at time; totals.
+- [x] Clarification: if `needs_clarification`, show `clarification_question` above the buttons, and focus the composer on tap.
+- [x] Multiple proposals in one message: stacked cards plus one "Save all (3)" button. One request, one idempotency key.
+- [x] Tap targets ≥ 44 px; macros use tabular numbers (`tabular-nums`).
 
 **Done when:** every card fixture from contracts §4 renders correctly in both themes.
 
-A6 implementation is on `ken/a6-meal-cards`, stacked on A5 for review. Cards expand to portions, sources, assumptions, time, and totals; single and batch saves retain retry identities and use server totals. Clarification focuses chat. Discard and unsaved name/time edits survive navigation in the private in-memory query cache, but reload clears them: the API has no discard-persistence endpoint. `/dev/meals` previews every fixture and save failure/retry. Full item/portion editing and saved-meal edits remain A7, and auto-save undo remains A10. Keep boxes open until review/merge; ask Sandy about a persisted proposal-state endpoint during integration.
+A6 merged in PR #15 at Ken’s request, with CI and the production build passing. Cards expand to portions, sources, assumptions, time, and totals; single/batch saves preserve retry identities and use server totals. Clarification focuses chat. Discard and unsaved name/time edits survive navigation in private browser memory, but reset on reload because the contract has no discard endpoint. `/dev/meals` covers all fixtures and failure/retry. Full item/portion and saved-meal editing remain A7; auto-save undo remains A10.
 
 ## A7 — Meal editor
 
