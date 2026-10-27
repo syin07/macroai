@@ -185,6 +185,8 @@ A13 implementation is on `ken/a13-onboarding`, pending review/merge. Four steps 
 
 - [ ] For the MVP: the last 7 recorded days as a simple list (date, kcal, protein) via `getDaily` per day, with a note that charts are coming. Full charts (Recharts) are P1.
 
+A14 implementation is on `ken/a14-insights`, pending review/merge. Insights discovers the newest seven recorded local dates through paginated saved meals, then loads each full day's authoritative calories and protein through `getDaily`; it never sums a partial meal page or substitutes zero for missing days. Dates follow account preferences, future dates are excluded, and the meal-query cache includes the time zone because the inclusive through-today filter depends on it. Includes empty/fewer-than-seven states, retained rows after failures, independent retry for each total and for day discovery, and the planned charts-coming note. Shared daily-cache updates appear immediately. `/auth/insights-preview` is development-only with mock empty/small-log/failure/theme controls. Acceptance stays open until merge and live approved-account verification; physical-device and production auth integration remain A15/A4 work.
+
 ## A15 — Polish and device testing
 
 - [ ] Loading skeletons on every screen; no layout shift when data arrives.

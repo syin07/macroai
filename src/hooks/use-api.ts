@@ -172,10 +172,13 @@ export function useMessages() {
 }
 export function useMeals(
   filters: Omit<api.MealFilters, "cursor"> = {},
-  options: { enabled?: boolean } = {},
+  options: { enabled?: boolean; timezone?: string } = {},
 ) {
   return useInfiniteQuery({
-    queryKey: queryKeys.meals(filters),
+    // Local-date filters depend on the account zone even when the dates stay the same.
+    queryKey: options.timezone
+      ? [...queryKeys.meals(filters), options.timezone]
+      : queryKeys.meals(filters),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       api.getMeals({ ...filters, cursor: pageParam }, { signal }),
