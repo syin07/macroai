@@ -28,10 +28,10 @@ Ground rules for every step:
 
 Can start before Ken's scaffold lands; just create the projects and keys.
 
-- [ ] Create two Supabase projects: `macroai-dev` and `macroai-prod`.
-- [ ] Enable auth providers: email/password (email confirmation on) and Google OAuth (create the OAuth client in Google Cloud Console; redirect URLs for `localhost:3000`, Vercel preview, and production domains).
-- [ ] Install `@supabase/supabase-js`, `@supabase/ssr`, and the Supabase CLI. Run `supabase init` so migrations live in `supabase/migrations/`.
-- [ ] Write `.env.example` with: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APPROVED_EMAILS` (comma-separated), `AI_PROVIDER`, the provider API key, `USDA_API_KEY` (get one at api.data.gov), `AI_DAILY_CALL_CAP` (start at 150), `NEXT_PUBLIC_USE_MOCKS`.
+- [x] Create two Supabase projects: `macroai-dev` and `macroai-prod`.
+- [x] Enable auth providers: email/password (email confirmation on) and Google OAuth (create the OAuth client in Google Cloud Console; redirect URLs for `localhost:3000`, Vercel preview, and production domains).
+- [x] Install `@supabase/supabase-js`, `@supabase/ssr`, and the Supabase CLI. Run `supabase init` so migrations live in `supabase/migrations/`.
+- [x] Write `.env.example` with: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `APPROVED_EMAILS` (comma-separated), `AI_PROVIDER`, the provider API key, `USDA_API_KEY` (get one at api.data.gov), `AI_DAILY_CALL_CAP` (start at 150), `NEXT_PUBLIC_USE_MOCKS`.
 - [ ] Add the same variables to Vercel (Preview → dev project, Production → prod project).
 
 **Done when:** both projects exist, both sign-in methods are enabled, and Vercel has the env vars.
