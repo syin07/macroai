@@ -1,4 +1,5 @@
 import type { Confidence, Macros, MealItem } from "@/types/api";
+import { nutritionCacheKey, type NutritionCache } from "./cache";
 import { itemMacros } from "./calc";
 import { hasPhrase, words } from "./text";
 import { gramsFromDefaults, gramsFromTable, gramsFromUsda, type GramsResult } from "./units";
@@ -290,14 +291,44 @@ async function findMatch(food: ExtractedFood, lookup: NutritionLookup): Promise<
   return null;
 }
 
-// Table first; fetch the food's portion data only when the table can't answer.
-async function resolvePortion(food: ExtractedFood, match: UsdaFood, lookup: NutritionLookup): Promise<GramsResult | null> {
+// Table first; fetch the food's portion data only when the table can't answer. Also returns the food
+// with any portions fetched along the way, so the cache can keep them.
+async function resolvePortion(
+  food: ExtractedFood,
+  match: UsdaFood,
+  lookup: NutritionLookup,
+): Promise<{ portion: GramsResult | null; food: UsdaFood }> {
   const input = { quantity: food.quantity, unit: food.unit, foodName: food.name };
   const fromTable = gramsFromTable(input);
-  if (fromTable) return fromTable;
+  if (fromTable) return { portion: fromTable, food: match };
   const detail = match.portions.length > 0 ? match : await lookup.getFood(match.fdcId);
-  const fromUsda = detail ? gramsFromUsda(input, { portions: detail.portions, serving: detail.serving ?? match.serving }) : null;
-  return fromUsda ?? gramsFromDefaults(input);
+  const serving = detail?.serving ?? match.serving;
+  const fromUsda = detail ? gramsFromUsda(input, { portions: detail.portions, serving }) : null;
+  const resolved = detail && detail !== match ? { ...match, portions: detail.portions, serving } : match;
+  return { portion: fromUsda ?? gramsFromDefaults(input), food: resolved };
+}
+
+// --- Cache ---
+
+// The cache is an optimization: any failure reads as a miss and writes are best effort.
+async function fromCache(food: ExtractedFood, key: string, cache: NutritionCache): Promise<ScoredCandidate | null> {
+  let cached: UsdaFood | null;
+  try {
+    cached = await cache.get(key);
+  } catch {
+    return null;
+  }
+  if (!cached?.basis_per_100g) return null;
+  const scored = scoreCandidate(food, cached);
+  return scored.ok ? { food: cached, score: scored.score, recall: scored.recall } : null;
+}
+
+async function toCache(key: string, food: UsdaFood, cache: NutritionCache): Promise<void> {
+  try {
+    await cache.set(key, food);
+  } catch {
+    // Next lookup searches USDA again.
+  }
 }
 
 function describeMatch(food: ExtractedFood, match: UsdaFood): string {
@@ -329,13 +360,16 @@ export function buildItem(food: ExtractedFood, match: UsdaFood, basis: Macros, p
   };
 }
 
-export async function matchFood(food: ExtractedFood, lookup: NutritionLookup): Promise<FoodMatchResult> {
+export async function matchFood(food: ExtractedFood, lookup: NutritionLookup, cache?: NutritionCache): Promise<FoodMatchResult> {
   try {
-    const match = await findMatch(food, lookup);
+    const key = cache ? nutritionCacheKey(food) : null;
+    const cached = cache && key ? await fromCache(food, key, cache) : null;
+    const match = cached ?? (await findMatch(food, lookup));
     const basis = match?.food.basis_per_100g;
     if (!match || !basis) return { status: "unmatched", food, reason: "no_match", match: null };
 
-    const portion = await resolvePortion(food, match.food, lookup);
+    const { portion, food: resolved } = await resolvePortion(food, match.food, lookup);
+    if (cache && key && (!cached || resolved !== match.food)) await toCache(key, resolved, cache);
     if (!portion) return { status: "unmatched", food, reason: "unknown_portion", match };
 
     return { status: "matched", food, item: buildItem(food, match.food, basis, portion), match };
@@ -347,6 +381,10 @@ export async function matchFood(food: ExtractedFood, lookup: NutritionLookup): P
 }
 
 // One result per extracted food, in the same order.
-export function matchAndCalculate(foods: readonly ExtractedFood[], lookup: NutritionLookup): Promise<FoodMatchResult[]> {
-  return Promise.all(foods.map((food) => matchFood(food, lookup)));
+export function matchAndCalculate(
+  foods: readonly ExtractedFood[],
+  lookup: NutritionLookup,
+  cache?: NutritionCache,
+): Promise<FoodMatchResult[]> {
+  return Promise.all(foods.map((food) => matchFood(food, lookup, cache)));
 }
