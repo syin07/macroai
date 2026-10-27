@@ -1,0 +1,25 @@
+{"id":"t01-boiled-eggs","category":"simple","input":"2 hard boiled eggs","expected_meals":1,"expected_items":[{"match":["egg"]}],"expect_inferred":false}
+{"id":"t02-banana","category":"simple","input":"a banana","expected_meals":1,"expected_items":[{"match":["banana"]}],"expect_inferred":false}
+{"id":"t03-explicit-grams","category":"explicit_weight","input":"150g grilled chicken breast and 200g cooked white rice","expected_meals":1,"expected_items":[{"match":["chicken"],"grams":150},{"match":["rice"],"grams":200}]}
+{"id":"t04-prd-breakfast","category":"multi_item","input":"Had 2 eggs, toast with butter, and a Fairlife protein shake.","expected_meals":1,"expected_items":[{"match":["egg"]},{"match":["toast","bread"]},{"match":["butter"]},{"match":["fairlife","shake"]}]}
+{"id":"t05-scoop-whey","category":"informal_units","input":"a scoop of whey protein in water","expected_meals":1,"expected_items":[{"match":["whey","protein powder"]}],"expect_inferred":false}
+{"id":"t06-handful-almonds","category":"informal_units","input":"a handful of almonds","expected_meals":1,"expected_items":[{"match":["almond"]}]}
+{"id":"t07-bowl-oatmeal","category":"informal_units","input":"a bowl of oatmeal with a spoonful of peanut butter","expected_meals":1,"expected_items":[{"match":["oat"]},{"match":["peanut butter"]}]}
+{"id":"t08-cup-yogurt","category":"informal_units","input":"a cup of greek yogurt and some blueberries","expected_meals":1,"expected_items":[{"match":["yogurt"]},{"match":["blueberr"]}]}
+{"id":"t09-three-meals","category":"multi_meal","input":"For breakfast I had eggs and toast. Lunch was chicken and rice. Dinner was pizza.","expected_meals":3,"expected_items":[{"match":["egg"]},{"match":["toast","bread"]},{"match":["chicken"]},{"match":["rice"]},{"match":["pizza"]}]}
+{"id":"t10-two-meals-yesterday","category":"multi_meal","input":"yesterday i had a bagel with cream cheese in the morning and a turkey sandwich for lunch","expected_meals":2,"expected_items":[{"match":["bagel"]},{"match":["cream cheese"]},{"match":["turkey"]},{"match":["bread","sandwich"]}],"expected_local_date":"2026-10-25"}
+{"id":"t11-should-i-eat-pizza","category":"hypothetical","input":"should I eat pizza?","expected_intent":"question","expected_meals":0,"expected_items":[]}
+{"id":"t12-thinking-burrito","category":"hypothetical","input":"thinking about getting a burrito for dinner, how many calories would that be?","expected_intent":"question","expected_meals":0,"expected_items":[]}
+{"id":"t13-protein-question","category":"question","input":"how much protein is in 100g of salmon?","expected_intent":"question","expected_meals":0,"expected_items":[]}
+{"id":"t14-correction","category":"correction","input":"actually that was 3 eggs not 2","expected_intent":"correction","expected_meals":0,"expected_items":[]}
+{"id":"t15-greeting","category":"not_food","input":"hey! how's it going","expected_intent":"other","expected_meals":0,"expected_items":[]}
+{"id":"t16-pan-fried-salmon","category":"hidden_fat","input":"pan-fried salmon fillet with asparagus","expected_meals":1,"expected_items":[{"match":["salmon"]},{"match":["asparagus"]}],"expect_inferred":true}
+{"id":"t17-stir-fry","category":"hidden_fat","input":"stir fried tofu and broccoli over rice","expected_meals":1,"expected_items":[{"match":["tofu"]},{"match":["broccoli"]},{"match":["rice"]}],"expect_inferred":true}
+{"id":"t18-chobani","category":"branded","input":"a Chobani vanilla greek yogurt cup","expected_meals":1,"expected_items":[{"match":["yogurt"]}],"expect_inferred":false}
+{"id":"t19-chipotle-burrito","category":"restaurant","input":"Chipotle chicken burrito for lunch","expected_meals":1,"expected_items":[{"match":["burrito","tortilla","chicken"]}]}
+{"id":"t20-usual-shake","category":"memory","input":"had my usual shake after the gym","memories":["Usual shake: Fairlife Core Power 26g, 1 bottle"],"expected_meals":1,"expected_items":[{"match":["fairlife","core power"]}],"expect_inferred":false}
+{"id":"t21-last-night-pizza","category":"date_phrase","input":"last night I had 2 slices of pepperoni pizza","expected_meals":1,"expected_items":[{"match":["pizza"]}],"expected_local_date":"2026-10-25"}
+{"id":"t22-two-hours-ago","category":"date_phrase","input":"had a coffee with milk 2 hours ago","expected_meals":1,"expected_items":[{"match":["coffee"]},{"match":["milk"]}],"expected_local_date":"2026-10-26"}
+{"id":"t23-pbj-abbreviations","category":"informal_units","input":"pb&j on wheat + glass of 2% milk","expected_meals":1,"expected_items":[{"match":["peanut butter"]},{"match":["jelly","jam","preserve"]},{"match":["bread","wheat"]},{"match":["milk"]}]}
+{"id":"t24-oz-steak","category":"explicit_weight","input":"1 cup of cooked quinoa and 3 oz of grilled sirloin steak","expected_meals":1,"expected_items":[{"match":["quinoa"]},{"match":["steak","sirloin","beef"],"grams":85}]}
+{"id":"t25-some-chicken","category":"ambiguous","input":"had some chicken","expected_meals":1,"expected_items":[{"match":["chicken"]}],"expect_clarification":true}
