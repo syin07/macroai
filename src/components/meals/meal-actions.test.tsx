@@ -199,3 +199,16 @@ it("explains an expired server undo instead of offering another restore", async 
     ).toBeNull(),
   );
 });
+it("does not label an existing meal returned by a history question as a new auto-save", async () => {
+  vi.mocked(api.sendChat).mockResolvedValueOnce({
+    user_message: { ...reply, id: "question", role: "user", cards: [] },
+    assistant_message: reply,
+    daily_summary: null,
+  });
+  mount();
+  await act(async () => {
+    fireEvent.click(screen.getByText("Receive auto-save"));
+  });
+  expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Delete meal" })).toBeTruthy();
+});

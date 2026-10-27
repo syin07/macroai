@@ -192,8 +192,12 @@ export function useSendChat() {
         client.setQueryData(receivedKey, true);
         for (const card of result.assistant_message.cards) {
           if (
+            result.daily_summary &&
             card.kind === "meal" &&
             card.meal?.status === "active" &&
+            card.meal.version === 1 &&
+            Date.parse(card.meal.created_at) >=
+              Date.parse(result.user_message.created_at) - 1000 &&
             !client.getQueryData<Record<string, MealActionState>>(
               mealActionsKey,
             )?.[card.meal_id]
