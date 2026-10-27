@@ -56,7 +56,7 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 - [x] `src/app/auth/callback/route.ts` for the OAuth / email-link code exchange.
 - [x] `src/proxy.ts` (Next 16's rename of `middleware.ts`): refresh the session on every request; redirect signed-out users on `(app)` routes to `/sign-in`; redirect signed-in-but-unapproved users to `/not-approved`.
 - [x] `GET /api/me`.
-- [ ] **(H2)** Tell Ken the helpers are ready, with a 3-line usage example in the PR description.
+- [x] **(H2)** Tell Ken the helpers are ready, with a 3-line usage example in the PR description.
 
 **Done when:** you can sign in with Google and with email on localhost, an unapproved test account lands on `/not-approved`, and `GET /api/me` without a session returns `401`.
 
@@ -64,7 +64,7 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 
 Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
-- [ ] The bake-off uses the text cases plus any ad-hoc photos; there is no weighed-photo test set.
+- [x] The bake-off uses the text cases plus any ad-hoc photos; there is no weighed-photo test set.
 - [x] Add 20+ text cases to `tests/eval/text-cases.jsonl` (`{ input, expected_items }`): simple, multi-item, informal units ("a scoop", "a handful"), three meals in one message, a hypothetical ("should I eat pizza?") that must log nothing.
 - [x] Write the extraction prompt v1 (`src/lib/ai/prompts/extract-meal.ts`). It returns the PRD §5.6 schema: foods, grams or units, preparation, `inferred` hidden ingredients, confidence, `search_query`.
 - [x] Write the provider interface `src/lib/ai/provider.ts`:
@@ -76,9 +76,9 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
   ```
   Write adapters for the three candidates: Gemini 3.1 Flash-Lite, Claude Haiku 5.5 (`claude-haiku-5-5`), and an affordable OpenAI vision model. Use each one's official SDK and structured-output mode.
 - [x] Write the harness `tests/eval/run-bakeoff.ts`: run every case through every adapter → USDA lookup (B5's matcher, or a simple version) → totals. Record per case: calorie error %, protein error (g), food-identification hits, schema validity, latency, and token cost.
-- [ ] Write up results in `docs/bakeoff-results.md`: a table per model with median and mean calorie error, protein error, % valid JSON, p50/p90 latency, and $ per 1,000 photos. Pick the winner, and note the runner-up as a fallback.
-- [ ] Check the winner's API data policy (no training on inputs; retention period; zero-retention option) and record it in the results doc.
-- [ ] Set `AI_PROVIDER` and set the real calorie-error target in PRD §20.
+- [x] Write up results in `docs/bakeoff-results.md`: a table per model with median and mean calorie error, protein error, % valid JSON, p50/p90 latency, and $ per 1,000 photos. Pick the winner, and note the runner-up as a fallback.
+- [x] Check the winner's API data policy (no training on inputs; retention period; zero-retention option) and record it in the results doc.
+- [x] Set `AI_PROVIDER` and set the real calorie-error target in PRD §20.
 
 **Done when:** `docs/bakeoff-results.md` is merged with a decision that Ken has seen.
 
