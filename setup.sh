@@ -20,7 +20,7 @@ case "$role" in
     partner_plan="docs/plans/ken-frontend.md"
     owns='- `src/app/api/**` (all route handlers)
 - `src/lib/ai/**`, `src/lib/nutrition/**`, `src/lib/database/**`, `src/lib/memory/**`
-- `src/lib/auth/**`, `src/middleware.ts`
+- `src/lib/auth/**`, `src/proxy.ts` (Next 16's middleware), `src/app/auth/**`
 - `src/lib/validation/**`, `src/types/**` (contract changes need Ken'"'"'s review)
 - `supabase/**` (migrations, RLS, seed) and `tests/eval/**` (model bake-off)'
     hands_off='- Pages, layouts, components, hooks, styles, `src/lib/api/**`, `src/mocks/**`, `public/**` belong to Ken.'
@@ -38,7 +38,7 @@ case "$role" in
 - `src/components/**`, `src/hooks/**`
 - `src/lib/api/**` (typed fetch wrappers + mock switch), `src/lib/image/**`
 - `src/mocks/**`, `public/**`, styles and Tailwind config'
-    hands_off='- `src/app/api/**`, `src/lib/{ai,nutrition,database,auth,validation,memory}/**`, `src/types/**`, `src/middleware.ts`, `supabase/**`, `tests/eval/**` belong to Sandy. You may import from them, not edit them.'
+    hands_off='- `src/app/api/**`, `src/lib/{ai,nutrition,database,auth,validation,memory}/**`, `src/types/**`, `src/proxy.ts`, `src/app/auth/**`, `supabase/**`, `tests/eval/**` belong to Sandy. You may import from them, not edit them.'
     focus='- Mobile first (375 px), both light and dark themes, every async action has loading, error (keeping input), and retry states.
 - Build against mocks (`NEXT_PUBLIC_USE_MOCKS=1`) until the matching checkpoint (H1–H8 in shared-contracts §5) lands; never block on the backend.
 - Import types from `src/types/api.ts`; never redefine them.'

@@ -14,7 +14,7 @@ The agreement between the backend (Sandy) and the frontend (Ken). Ken builds the
 |---|---|---|
 | `src/app/api/**` | Sandy | All route handlers |
 | `src/lib/ai/**`, `src/lib/nutrition/**`, `src/lib/database/**`, `src/lib/memory/**` | Sandy | |
-| `src/lib/auth/**`, `src/middleware.ts` | Sandy | Ken calls the exported helpers |
+| `src/lib/auth/**`, `src/proxy.ts`, `src/app/auth/**` | Sandy | Ken calls the exported helpers. `proxy.ts` is Next 16's name for `middleware.ts`; `src/app/auth/callback` is the OAuth / email-link landing route |
 | `src/lib/validation/**`, `src/types/**` | Sandy | Contract changes need Ken's review |
 | `src/lib/api-error.ts` | Sandy | `ApiError` responses and status codes for routes |
 | `supabase/**` | Sandy | Migrations, RLS, seed |
@@ -255,7 +255,7 @@ Stale `version` → `409 version_conflict`.
 
 ### Goals, preferences, profile
 
-**`GET /api/me`** → `Me`
+**`GET /api/me`** → `Me`. Signed out → `401 unauthenticated`; signed in but not on the allow-list → `403 not_approved`, so `approved` is always `true` in a `200`. The not-approved page reads approval from `getSession()` in `src/lib/auth/client.ts` instead.
 
 **`GET /api/goals`** → `NutritionGoals | null`
 **`PUT /api/goals`** `{ calories, protein_g, carbs_g, fat_g }` → `NutritionGoals`

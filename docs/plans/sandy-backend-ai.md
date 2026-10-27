@@ -51,11 +51,11 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 
 ## B3 — Auth plumbing
 
-- [ ] `src/lib/auth/server.ts`: `createServerClient()` for route handlers / server components, and `requireUser()`, which returns `{ user, supabase }` or throws `unauthenticated` / `not_approved`.
-- [ ] `src/lib/auth/client.ts`: browser client plus exported helpers for Ken: `signInWithGoogle()`, `signInWithPassword(email, pw)`, `signUp(email, pw)`, `sendPasswordReset(email)`, `updatePassword(pw)`, `signOut()`.
-- [ ] `src/app/auth/callback/route.ts` for the OAuth / email-link code exchange.
-- [ ] `src/middleware.ts`: refresh the session on every request; redirect signed-out users on `(app)` routes to `/sign-in`; redirect signed-in-but-unapproved users to `/not-approved`.
-- [ ] `GET /api/me`.
+- [x] `src/lib/auth/server.ts`: `createServerClient()` for route handlers / server components, and `requireUser()`, which returns `{ user, supabase }` or throws `unauthenticated` / `not_approved`.
+- [x] `src/lib/auth/client.ts`: browser client plus exported helpers for Ken: `signInWithGoogle()`, `signInWithPassword(email, pw)`, `signUp(email, pw)`, `sendPasswordReset(email)`, `updatePassword(pw)`, `signOut()`.
+- [x] `src/app/auth/callback/route.ts` for the OAuth / email-link code exchange.
+- [x] `src/proxy.ts` (Next 16's rename of `middleware.ts`): refresh the session on every request; redirect signed-out users on `(app)` routes to `/sign-in`; redirect signed-in-but-unapproved users to `/not-approved`.
+- [x] `GET /api/me`.
 - [ ] **(H2)** Tell Ken the helpers are ready, with a 3-line usage example in the PR description.
 
 **Done when:** you can sign in with Google and with email on localhost, an unapproved test account lands on `/not-approved`, and `GET /api/me` without a session returns `401`.
