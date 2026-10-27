@@ -48,6 +48,7 @@ export function MealCard({
   onClarify,
   onEditItem,
   actions,
+  defaultExpanded = false,
 }: {
   card: MealCardData;
   timezone?: string;
@@ -60,8 +61,9 @@ export function MealCard({
   onClarify?: () => void;
   onEditItem?: (index: number) => void;
   actions?: ReactNode;
+  defaultExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const detailsId = useId();
   if (
     card.kind === "meal" &&

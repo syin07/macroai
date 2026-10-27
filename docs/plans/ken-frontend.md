@@ -113,41 +113,43 @@ A6 merged in PR #15 at Ken’s request, with CI and the production build passing
 
 `src/components/meals/meal-editor.tsx`: a bottom sheet on mobile (`Drawer`), a dialog on desktop.
 
-- [ ] Edit the name, consumed-at date and time (native `datetime-local`), and each item's quantity and unit. Grams is editable directly, as one tap from the card.
-- [ ] Add an item (name + grams, or manual macros), and remove an item.
-- [ ] Manual macro override per item (switches that item to `nutrition_source: "manual"`).
-- [ ] Live totals preview using `src/lib/nutrition/calc.ts` (Sandy's pure functions). The server's response is the final value.
-- [ ] For a proposal: Save sends the edited proposal through `saveMeals`. For a saved meal: `updateMeal` with `version`; on `409 version_conflict`, refetch and show "This meal changed — review and save again".
+- [x] Edit the name, consumed-at date and time (native `datetime-local`), and each item's quantity and unit. Grams is editable directly, as one tap from the card.
+- [x] Add an item (name + grams, or manual macros), and remove an item.
+- [x] Manual macro override per item (switches that item to `nutrition_source: "manual"`).
+- [x] Live totals preview using `src/lib/nutrition/calc.ts` (Sandy's pure functions). The server's response is the final value.
+- [x] For a proposal: Save sends the edited proposal through `saveMeals`. For a saved meal: `updateMeal` with `version`; on `409 version_conflict`, refetch and show "This meal changed — review and save again".
 
 **Done when:** editing grams updates totals instantly, and save works in mock mode (and in real mode after **H6**).
 
-A7 implementation is on `ken/a7-meal-editor`, pending review/merge. Includes mobile Drawer/desktop Dialog, one-tap grams focus, quantity/unit conversion, item add/remove and repeated portions, manual overrides and label-per-100g entries, validation through Sandy's schemas, and previews through `src/lib/nutrition/calc.ts`. New foods require entered nutrition rather than guesses from name/weight. Edited proposals retain their save key on retry; saved edits retain item IDs and versions. A 409 fetches the latest meal, keeps the user's draft visible, and requires explicit loading/review before saving again. `/auth/meal-editor-preview` is a public, development-only mock page under the existing public auth namespace; production still returns 404. H6 real endpoint and physical phone checks remain pending; boxes stay open until merge.
+A7 merged in PR #18 after Sandy’s approval. Includes mobile Drawer/desktop Dialog, one-tap grams focus, quantity/unit conversion, item add/remove and repeated portions, manual overrides and label-per-100g entries, validation through Sandy's schemas, and previews through `src/lib/nutrition/calc.ts`. New foods require entered nutrition rather than guesses from name/weight. Edited proposals retain their save key on retry; saved edits retain item IDs and versions. A 409 fetches the latest meal, keeps the user's draft visible, and requires explicit loading/review before saving again. `/auth/meal-editor-preview` is a public, development-only mock page under the existing public auth namespace; production still returns 404. H6 endpoints have since landed; live account integration and physical phone checks remain pending.
 
 ## A8 — Photo input
 
-- [ ] Photo button → a hidden `<input type="file" accept="image/*" capture="environment">`. Add a second option, "Choose from library", using the same input without `capture`.
+- [x] Photo button → a hidden `<input type="file" accept="image/*" capture="environment">`. Add a second option, "Choose from library", using the same input without `capture`.
 - [ ] Downscale before upload in `src/lib/image/downscale.ts`: `createImageBitmap` (fall back to an `<img>` element), draw onto a canvas with the longest side 1024 px, `toBlob("image/jpeg", 0.8)`, and reject over 1.5 MB after compression. Test with an iPhone HEIC photo and a large Android photo.
-- [ ] Show a thumbnail preview in the composer with a remove (×) button; the user can add a caption in the textarea.
-- [ ] Keep the image only in memory (an object URL, revoked after send). Never in localStorage or IndexedDB.
-- [ ] In the sent bubble, show a small "📷 Photo" chip (`had_image`), not the image itself, since the server doesn't keep it (PRD FR-15).
+- [x] Show a thumbnail preview in the composer with a remove (×) button; the user can add a caption in the textarea.
+- [x] Keep the image only in memory (an object URL, revoked after send). Never in localStorage or IndexedDB.
+- [x] In the sent bubble, show a small "📷 Photo" chip (`had_image`), not the image itself, since the server doesn't keep it (PRD FR-15).
 
 **Done when (after H5):** a photo taken on both your phones produces a card through the real API, and the upload is under 1.5 MB.
 
+A8 merged in PR #19 after Sandy’s approval. Camera/library inputs, JPEG conversion, thumbnails, retained retries, URL cleanup, and Photo-only history are implemented. Real iPhone HEIC/Android camera and H5 upload checks remain open, so the combined resize/device-test checkbox is still unchecked.
+
 ## A9 — Daily summary and dashboard
 
-- [ ] Compact bar at the top of chat: `1,240 / 2,200 kcal` and three thin P / C / F bars. Tap to expand.
-- [ ] Expanded: a calorie ring (SVG, no chart library needed), three macro progress bars with consumed / target / remaining, and today's meal timeline (time, name, kcal; tap → editor).
-- [ ] Over target: the bar fills to 100% with an overflow segment in a neutral accent color, and the text reads "120 kcal over". No red alarm styling and no judgmental copy (PRD 3.5, 12.9).
-- [ ] No goals set: show consumed only, with a "Set goals" link to Settings.
-- [ ] Updates from `daily_summary` in mutation responses, with no extra fetch.
+- [x] Compact bar at the top of chat: `1,240 / 2,200 kcal` and three thin P / C / F bars. Tap to expand.
+- [x] Expanded: a calorie ring (SVG, no chart library needed), three macro progress bars with consumed / target / remaining, and today's meal timeline (time, name, kcal; tap → editor).
+- [x] Over target: the bar fills to 100% with an overflow segment in a neutral accent color, and the text reads "120 kcal over". No red alarm styling and no judgmental copy (PRD 3.5, 12.9).
+- [x] No goals set: show consumed only, with a "Set goals" link to Settings.
+- [x] Updates from `daily_summary` in mutation responses, with no extra fetch.
 
 ## A10 — Save modes, undo, and manual logging
 
-- [ ] Auto-save mode: cards arrive already saved; show a compact "Saved · Undo" row on the card for 10 s (undo calls `deleteMeal`, then shows the undo option for the delete).
+- [x] Auto-save mode: cards arrive already saved; show a compact "Saved · Undo" row on the card for 10 s (undo calls `deleteMeal`, then shows the undo option for the delete).
 - [ ] Delete flow (from card, editor, or history): call `deleteMeal` → a toast "Meal deleted · Undo" until `undo_until` → `undoDelete` on tap.
-- [ ] Manual logging: a "+" action in the composer menu opens a form (name, kcal, protein, carbs, fat, date/time) → `saveMeals` with `source_type: "manual"`. The result appears in chat as a saved card.
+- [x] Manual logging: a "+" action in the composer menu opens a form (name, kcal, protein, carbs, fat, date/time) → `saveMeals` with `source_type: "manual"`. The result appears in chat as a saved card.
 
-Combined A9/A10 implementation is on `ken/a9-a10-dashboard-save-modes`, pending review/merge. The chat summary includes compact macro bars, an SVG calorie ring, consumed/target/remaining values, neutral overflow styling, and a timezone-aware timeline opening A7's editor. Returned daily summaries update totals without another daily fetch. Newly received auto-saved cards offer Undo for 10 seconds; deletion uses the server's `undo_until`, with shared notifications, retry, expiry handling, and restoration. Cards and the editor share deletion actions; History will reuse them in A11. Manual logging validates through the shared schema, preserves retry identity, and inserts the returned saved meal into chat. This immediate manual card is kept in private browser memory and deduplicated against server messages; cross-device/reload chat placement depends on the backend emitting the linked message (the mock does). `/auth/dashboard-preview` is development-only and unavailable in production. Real H4/H6 integration and physical-device checks remain open; do not tick acceptance boxes before merge.
+A9/A10 merged together in PR #23 after Sandy’s approval. The chat summary includes compact macro bars, an SVG calorie ring, consumed/target/remaining values, neutral overflow styling, and a timezone-aware timeline opening A7's editor. Returned daily summaries update totals without another daily fetch. Newly received auto-saved cards offer Undo for 10 seconds; deletion uses the server's `undo_until`, with shared notifications, retry, expiry handling, and restoration. Cards and the editor share deletion actions; A11 adds the History entry point. Manual logging validates through the shared schema, preserves retry identity, and inserts the returned saved meal into chat. This immediate manual card is kept in private browser memory and deduplicated against server messages; cross-device/reload chat placement depends on the backend emitting the linked message (the mock does). `/auth/dashboard-preview` is development-only and unavailable in production. H6 endpoints are now merged. Live account integration and physical-device checks remain open; the A10 History deletion checkbox stays open until A11 merges.
 
 ## A11 — History screen
 
@@ -157,6 +159,8 @@ Combined A9/A10 implementation is on `ken/a9-a10-dashboard-save-modes`, pending 
 - [ ] Empty and no-results states.
 
 **Done when (after H6):** 200+ mock meals scroll smoothly and search filters correctly.
+
+A11 implementation is on `ken/a11-history`, pending review/merge. It groups paginated results by the account’s time zone, deduplicates cursor overlaps, and uses each day’s authoritative daily summary rather than summing a partial page or filtered result. Includes 300 ms search, inclusive native date filters, automatic pagination plus a keyboard-accessible button, retained filters and retry states, and distinct empty/no-results views. A responsive detail sheet reuses the expanded meal card, A7 editor, and A10 deletion/restore flow. `/auth/history-preview` is development-only with 205 mock records. H6 routes are now on main; live approved-account verification remains pending auth integration.
 
 ## A12 — Settings
 
