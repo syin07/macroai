@@ -76,6 +76,8 @@ Build with mocks or stubs first; wire up after **H2**.
 
 **Done when (after H2):** both of you can sign in with Google and with email on the preview URL; a third account sees "not approved"; refreshing keeps you signed in.
 
+A4 UI is on `ken/a4-auth-screens`, stacked on A3 for review. `/dev/auth` exercises the mock-only flows. `src/lib/api/auth.ts` is the frontend adapter; it reports auth unavailable in production until H2 is wired. The new-password form requires a recovery session, not just a URL flag. Real OAuth, email delivery, approved-account enforcement, and session persistence remain unverified until H2; keep A4's acceptance boxes open until then.
+
 ## A5 — Chat screen
 
 The core of the app. Spend the most polish here.

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { NotApproved } from "@/components/auth/not-approved";
 import { AuthFrame } from "@/components/shared/auth-frame";
 
 export default function NotApprovedPage() {
@@ -7,9 +7,7 @@ export default function NotApprovedPage() {
       title="A private space"
       description="This account hasn't been approved for MacroAI. Access is currently limited to the two project members."
     >
-      <Link className="app-text-link rounded-md" href="/sign-in">
-        Back to sign in
-      </Link>
+      <NotApproved />
     </AuthFrame>
   );
 }

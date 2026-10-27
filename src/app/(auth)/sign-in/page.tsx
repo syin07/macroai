@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SignInForm } from "@/components/auth/sign-in-form";
 import { AuthFrame } from "@/components/shared/auth-frame";
 
 export default function SignInPage() {
@@ -7,12 +7,7 @@ export default function SignInPage() {
       title="Sign in"
       description="Keep your meals and progress together, wherever you are."
     >
-      <Link className="app-text-link rounded-md" href="/sign-up">
-        Create an account
-      </Link>
-      <Link className="app-text-link rounded-md" href="/reset-password">
-        Reset password
-      </Link>
+      <SignInForm />
     </AuthFrame>
   );
 }

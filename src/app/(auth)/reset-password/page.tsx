@@ -1,15 +1,25 @@
-import Link from "next/link";
+import {
+  RequestPasswordReset,
+  SetNewPassword,
+} from "@/components/auth/password-reset";
 import { AuthFrame } from "@/components/shared/auth-frame";
 
-export default function ResetPasswordPage() {
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string }>;
+}) {
+  const update = (await searchParams).mode === "update";
   return (
     <AuthFrame
-      title="Reset password"
-      description="Get back to your personal food log."
+      title={update ? "Choose a new password" : "Reset password"}
+      description={
+        update
+          ? "A fresh start for your account."
+          : "We'll send a link to help you get back in."
+      }
     >
-      <Link className="app-text-link rounded-md" href="/sign-in">
-        Back to sign in
-      </Link>
+      {update ? <SetNewPassword /> : <RequestPasswordReset />}
     </AuthFrame>
   );
 }
