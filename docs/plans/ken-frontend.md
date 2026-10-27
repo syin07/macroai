@@ -25,15 +25,17 @@ Ground rules for every step:
 
 Do this first: Sandy's routes go into this project.
 
-- [ ] `npx create-next-app@latest macroai --ts --app --tailwind --eslint --src-dir --import-alias "@/*"` in a temporary folder, then move its contents into the repo root. Merge its `.gitignore` into ours, and keep `README.md`, `AGENTS.md`, and `CLAUDE.md`.
-- [ ] `npx shadcn@latest init`; add components as you need them (start with: button, input, textarea, card, sheet, dialog, drawer, tabs, sonner, skeleton, progress, dropdown-menu, form, label, switch, separator).
-- [ ] Install: `lucide-react`, `@tanstack/react-query`, `next-themes`, `date-fns`, `date-fns-tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `vitest`, `@testing-library/react`, `prettier`, `prettier-plugin-tailwindcss`.
-- [ ] Create the folder structure from PRD §6.2, with empty `index.ts` files where needed so Sandy's paths exist.
-- [ ] `next-themes` provider in `src/app/layout.tsx`: default `system`, class strategy. A theme toggle comes later in Settings.
-- [ ] Mobile meta: `viewport` with `viewport-fit=cover`, a `theme-color` per scheme, and `env(safe-area-inset-*)` padding utilities.
-- [ ] PWA: `src/app/manifest.ts` (name "MacroAI", `display: "standalone"`, start URL `/chat`), 192/512 px icons plus a maskable icon and `apple-touch-icon` in `public/`.
-- [ ] The GitHub repo (`syin07/macroai`) already exists. Import it into Vercel, and confirm a preview deploy builds on every PR.
-- [ ] Add `npm run lint`, `npm run typecheck`, `npm test` scripts and a GitHub Action that runs them on PRs.
+- [x] `npx create-next-app@latest macroai --ts --app --tailwind --eslint --src-dir --import-alias "@/*"` in a temporary folder, then move its contents into the repo root. Merge its `.gitignore` into ours, and keep `README.md`, `AGENTS.md`, and `CLAUDE.md`.
+- [x] `npx shadcn@latest init`; add components as you need them (start with: button, input, textarea, card, sheet, dialog, drawer, tabs, sonner, skeleton, progress, dropdown-menu, form, label, switch, separator).
+- [x] Install: `lucide-react`, `@tanstack/react-query`, `next-themes`, `date-fns`, `date-fns-tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `vitest`, `@testing-library/react`, `prettier`, `prettier-plugin-tailwindcss`.
+- [x] Create the folder structure from PRD §6.2. Per Ken's A1 handoff requirements, use only empty `.gitkeep` files in Sandy's folders; no `index.ts`, `api.ts`, or middleware placeholders.
+- [x] `next-themes` provider in `src/app/layout.tsx`: default `system`, class strategy. A theme toggle comes later in Settings.
+- [x] Mobile meta: `viewport` with `viewport-fit=cover`, a `theme-color` per scheme, and `env(safe-area-inset-*)` padding utilities.
+- [x] PWA: `src/app/manifest.ts` (name "MacroAI", `display: "standalone"`, start URL `/chat`), 192/512 px icons plus a maskable icon and `apple-touch-icon` in `public/`.
+- [ ] **Sandy owns deployment:** import `syin07/macroai` into Vercel and confirm preview builds on PRs. Ken reassigned Vercel setup to Sandy; not verified by this scaffold.
+- [x] Add `npm run lint`, `npm run typecheck`, `npm test` scripts and a GitHub Action that runs them on PRs.
+
+Scaffold handoff: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defaults to Node and picks up `src/**/*.test.{ts,tsx}`. DOM tests opt into jsdom per file. Node 24 LTS is used locally and in CI. `.env.example` remains trackable. Physical iPhone home-screen installation remains to be checked after Sandy deploys.
 
 **Done when:** the empty app deploys to a Vercel preview URL, installs to an iPhone home screen, and follows the system dark mode.
 
