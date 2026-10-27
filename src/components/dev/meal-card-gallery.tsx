@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import { MessageMealCards } from "@/components/meals/message-meal-cards";
-import { useDaily } from "@/hooks/use-api";
+import { useDaily, useMeal, useMeals } from "@/hooks/use-api";
+import { getMeal, updateMeal } from "@/lib/api";
 import { mockApi } from "@/mocks/server";
 import { createFixtures } from "@/mocks/fixtures";
 import type { ChatMessage, MealCard } from "@/types/api";
@@ -16,9 +17,13 @@ export function MealCardGallery({
 }) {
   const client = useQueryClient();
   const daily = useDaily();
+  const meals = useMeals();
+  const saved = useMeal(meals.data?.pages[0]?.meals[0]?.id ?? "");
   const busy = useIsMutating() > 0;
   const [notice, setNotice] = useState("");
   const [reply, setReply] = useState("");
+  const [changing, setChanging] = useState(false);
+  const [changeFailed, setChangeFailed] = useState(false);
   const scenarios: Array<{
     id: string;
     label: string;
@@ -61,13 +66,15 @@ export function MealCardGallery({
     {
       id: "saved",
       label: "Auto-saved",
-      cards: [
-        {
-          kind: "meal",
-          meal_id: fixtures.autoSaved.id,
-          meal: fixtures.autoSaved,
-        },
-      ],
+      cards: saved.data
+        ? [
+            {
+              kind: "meal",
+              meal_id: saved.data.id,
+              meal: saved.data,
+            },
+          ]
+        : [],
     },
     { id: "deleted", label: "Deleted", cards: fixtures.deletedMessage.cards },
     {
@@ -92,7 +99,7 @@ export function MealCardGallery({
       <div className="flex flex-wrap gap-3">
         <button
           className="chat-text-button rounded-lg border px-3"
-          disabled={daily.isPending || busy}
+          disabled={daily.isPending || busy || changing}
           onClick={() => {
             mockApi.failNext("internal");
             setNotice("The next request will fail. Save a card, then retry.");
@@ -102,12 +109,45 @@ export function MealCardGallery({
         </button>
         <button
           className="chat-text-button rounded-lg border px-3"
-          disabled={busy}
+          disabled={busy || changing || !saved.data}
+          onClick={async () => {
+            if (!saved.data) return;
+            setChanging(true);
+            setChangeFailed(false);
+            try {
+              const current = await getMeal(saved.data.id);
+              await updateMeal(current.id, {
+                version: current.version,
+                name: "Changed on another device",
+              });
+              setNotice(
+                "Saved meal changed in the mock store. Open its editor and save to exercise version-conflict review.",
+              );
+            } catch (error) {
+              setChangeFailed(true);
+              setNotice(
+                error instanceof Error ? error.message : "Mock change failed.",
+              );
+            } finally {
+              setChanging(false);
+            }
+          }}
+        >
+          {changing
+            ? "Changing saved meal…"
+            : changeFailed
+              ? "Retry external change"
+              : "Change saved meal elsewhere"}
+        </button>
+        <button
+          className="chat-text-button rounded-lg border px-3"
+          disabled={busy || changing}
           onClick={() => {
             mockApi.reset();
             void client.resetQueries({ queryKey: ["proposal-ui"] });
             void client.invalidateQueries();
             setNotice("Preview reset.");
+            setChangeFailed(false);
           }}
         >
           Reset preview
