@@ -1,0 +1,177 @@
+{
+  "fdcId": 2705968,
+  "description": "Chicken breast, grilled without sauce, skin not eaten",
+  "dataType": "Survey (FNDDS)",
+  "foodPortions": [
+    {
+      "id": 292892,
+      "gramWeight": 120,
+      "modifier": "64699",
+      "portionDescription": "1 medium breast",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 3
+    },
+    {
+      "id": 292896,
+      "gramWeight": 85,
+      "modifier": "61039",
+      "portionDescription": "1 large or thick slice",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 7
+    },
+    {
+      "id": 292891,
+      "gramWeight": 105,
+      "modifier": "64698",
+      "portionDescription": "1 small breast",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 2
+    },
+    {
+      "id": 292890,
+      "gramWeight": 135,
+      "modifier": "10049",
+      "portionDescription": "1 cup, cooked, diced",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 1
+    },
+    {
+      "id": 292899,
+      "gramWeight": 120,
+      "modifier": "90000",
+      "portionDescription": "Quantity not specified",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 10
+    },
+    {
+      "id": 292897,
+      "gramWeight": 28.35,
+      "modifier": "40040",
+      "portionDescription": "1 oz, cooked",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 8
+    },
+    {
+      "id": 292898,
+      "gramWeight": 155,
+      "modifier": "60453",
+      "portionDescription": "1 breast quarter (yield after cooking, bone removed)",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 9
+    },
+    {
+      "id": 292893,
+      "gramWeight": 135,
+      "modifier": "64700",
+      "portionDescription": "1 large breast",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 4
+    },
+    {
+      "id": 292894,
+      "gramWeight": 30,
+      "modifier": "62138",
+      "portionDescription": "1 small or thin slice",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 5
+    },
+    {
+      "id": 292895,
+      "gramWeight": 60,
+      "modifier": "61398",
+      "portionDescription": "1 medium slice",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 6
+    }
+  ],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 34174119,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 600,
+        "unitName": "g"
+      },
+      "amount": 29.6
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 34174120,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 800,
+        "unitName": "g"
+      },
+      "amount": 5.45
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 34174121,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 1110,
+        "unitName": "g"
+      },
+      "amount": 0
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 34174122,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "kcal"
+      },
+      "amount": 176
+    }
+  ]
+}

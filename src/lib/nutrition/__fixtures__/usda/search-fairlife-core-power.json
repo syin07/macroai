@@ -1,0 +1,1030 @@
+{
+  "totalHits": 43428,
+  "currentPage": 1,
+  "totalPages": 1738,
+  "foods": [
+    {
+      "fdcId": 1935189,
+      "description": "CORE POWER, HIGH PROTEIN MILK SHAKE, BANANA, BANANA",
+      "dataType": "Branded",
+      "brandOwner": "Fair Oaks Farms Brands, Inc.",
+      "brandName": "CORE POWER",
+      "servingSize": 340,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "11.5 OZA",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 7.65
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.03
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.65
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 71
+        }
+      ]
+    },
+    {
+      "fdcId": 1871907,
+      "description": "CORE POWER, HIGH PROTEIN MILK SHAKE, CHOCOLAT, CHOCOLAT",
+      "dataType": "Branded",
+      "brandOwner": "Fair Oaks Farms Brands, Inc.",
+      "brandName": "CORE POWER",
+      "servingSize": 340,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "11.5 OZA",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.88
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.03
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 3.82
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 44
+        }
+      ]
+    },
+    {
+      "fdcId": 1872220,
+      "description": "CORE POWER, HIGH PROTEIN MILK SHAKE, VANILLA, VANILLA",
+      "dataType": "Branded",
+      "brandOwner": "Fair Oaks Farms Brands, Inc.",
+      "brandName": "CORE POWER",
+      "servingSize": 340,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "11.5 OZA",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 7.65
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.03
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.65
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 71
+        }
+      ]
+    },
+    {
+      "fdcId": 1871922,
+      "description": "CORE POWER, HIGH PROTEIN MILK SHAKE, STRAWBERRY, BANANA, STRAWBERRY, BANANA",
+      "dataType": "Branded",
+      "brandOwner": "Fair Oaks Farms Brands, Inc.",
+      "brandName": "CORE POWER",
+      "servingSize": 340,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "11.5 OZA",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.88
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.03
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 3.24
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 44
+        }
+      ]
+    },
+    {
+      "fdcId": 2339203,
+      "description": "GREEN POWER PROTEIN SHAKE FROM CONCENTRATE, GREEN POWER",
+      "dataType": "Branded",
+      "brandOwner": "Nextfoods LLC",
+      "brandName": "GOODBELLY PROBIOTICS",
+      "servingSize": 240,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "8 ONZ",
+      "foodCategory": "Other Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 3.33
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 0.42
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 8.33
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 54
+        }
+      ]
+    },
+    {
+      "fdcId": 2742751,
+      "description": "Core Power Protein Chocolate Elite 42G Bottle, 14 fl oz",
+      "dataType": "Branded",
+      "brandOwner": "Coca-Cola",
+      "brandName": "Core Power-KO",
+      "servingSize": 414,
+      "servingSizeUnit": "MLT",
+      "householdServingFullText": "1 Bottle",
+      "foodCategory": "Non Alcoholic Beverages - Ready to Drink",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 10.1
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 0.85
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 2.17
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 56
+        }
+      ]
+    },
+    {
+      "fdcId": 2495543,
+      "description": "PLANT POWERED SHAKE, DARK COCOA POWER",
+      "dataType": "Branded",
+      "brandOwner": "Kashi International Corporation",
+      "brandName": "KASHI",
+      "servingSize": 45,
+      "servingSizeUnit": "MC",
+      "householdServingFullText": "1 PACKET",
+      "foodCategory": "Wholesome Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 46.7
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 15.6
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 28.9
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 400
+        }
+      ]
+    },
+    {
+      "fdcId": 2543809,
+      "description": "TOASTED ALMOND REAL PLANT-POWERED PROTEIN SHAKE, TOASTED ALMOND",
+      "dataType": "Branded",
+      "brandOwner": "PepsiCo, Inc. (CytoSport)",
+      "brandName": "EVOLVE",
+      "servingSize": 355,
+      "servingSizeUnit": "MLT",
+      "householdServingFullText": "12 fl oz",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.63
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 5.35
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 45
+        }
+      ]
+    },
+    {
+      "fdcId": 1894948,
+      "description": "PLANT POWERED PROTEIN",
+      "dataType": "Branded",
+      "brandOwner": "Curation Foods, Inc.",
+      "brandName": "EAT SMART",
+      "servingSize": 176,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 SALAD",
+      "foodCategory": "Pre-Packaged Fruit & Vegetables",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 7.95
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 17
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 9.09
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 210
+        }
+      ]
+    },
+    {
+      "fdcId": 2427199,
+      "description": "POWER PROTEIN MIX",
+      "dataType": "Branded",
+      "brandOwner": "Nosher's Choice",
+      "brandName": "PARADISE VALLEY",
+      "servingSize": 28,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 ONZ",
+      "foodCategory": "Chips, Pretzels & Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 25
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 39.3
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 28.6
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 536
+        }
+      ]
+    },
+    {
+      "fdcId": 2545847,
+      "description": "PROTEIN POWER MIX",
+      "dataType": "Branded",
+      "brandOwner": "Snack World, LLC",
+      "brandName": "SNAK CLUB",
+      "servingSize": 30,
+      "servingSizeUnit": "GRM",
+      "householdServingFullText": "0.25 cup",
+      "foodCategory": "Popcorn, Peanuts, Seeds & Related Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 26.7
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 26.7
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 36.7
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 467
+        }
+      ]
+    },
+    {
+      "fdcId": 1919750,
+      "description": "VEGGIE PROTEIN POWER",
+      "dataType": "Branded",
+      "brandOwner": "Auto Customs, Inc",
+      "brandName": "GRAZE",
+      "servingSize": 30,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1.1 ONZ",
+      "foodCategory": "Popcorn, Peanuts, Seeds & Related Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 23.3
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 30
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 33.3
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 500
+        }
+      ]
+    },
+    {
+      "fdcId": 587398,
+      "description": "PROTEIN SHAKE",
+      "dataType": "Branded",
+      "brandOwner": "Ripple Foods",
+      "servingSize": 355,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "12 OZA",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.63
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 2.25
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 3.1
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 56
+        }
+      ]
+    },
+    {
+      "fdcId": 2147495,
+      "description": "PROTEIN SHAKES",
+      "dataType": "Branded",
+      "brandOwner": "The Kellogg Company ",
+      "brandName": "KELLOGG'S",
+      "servingSize": 296,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "1 BOTTLE",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.07
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.69
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 8.11
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 64
+        }
+      ]
+    },
+    {
+      "fdcId": 1628955,
+      "description": "KASHI, GOLEAN, PLANT POWERED SHAKE",
+      "dataType": "Branded",
+      "brandOwner": "Kashi International Corporation",
+      "brandName": "KASHI",
+      "servingSize": 40,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 PACKET",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 52.5
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 17.5
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 20
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 400
+        }
+      ]
+    },
+    {
+      "fdcId": 1895315,
+      "description": "REAL DAIRY POWER SHAKE, STRAWBERRY",
+      "dataType": "Branded",
+      "brandOwner": "Dairy Farmers of America, Inc. ",
+      "brandName": "SPORT SHAKE",
+      "servingSize": 325,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "1 CAN",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 3.69
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 2.77
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 16.3
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 105
+        }
+      ]
+    },
+    {
+      "fdcId": 1919707,
+      "description": "THE REAL DAIRY POWER SHAKE, CHOCOLATE",
+      "dataType": "Branded",
+      "brandOwner": "Dairy Farmers of America, Inc. ",
+      "brandName": "SPORT SHAKE",
+      "servingSize": 237,
+      "servingSizeUnit": "ml",
+      "householdServingFullText": "1 Can",
+      "foodCategory": "Milk",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 3.8
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 2.95
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 18.1
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 110
+        }
+      ]
+    },
+    {
+      "fdcId": 2486783,
+      "description": "PROTEIN 18 G PLANT-POWERED SHAKE, TAHITIAN VANILLA, TAHITIAN VANILLA",
+      "dataType": "Branded",
+      "brandOwner": "Iovate Health Sciences International Inc.",
+      "brandName": "PURELY INSPIRED",
+      "servingSize": 48,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 Scoop",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 37.5
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 8.33
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 41.7
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 375
+        }
+      ]
+    },
+    {
+      "fdcId": 1947589,
+      "description": "MORNING POWER PROTEIN PACKS",
+      "dataType": "Branded",
+      "brandOwner": "The Kellogg Company ",
+      "brandName": "BEAR NAKED",
+      "servingSize": 42,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1.5 ONZ",
+      "foodCategory": "Other Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 19
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 21.4
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 52.4
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 452
+        }
+      ]
+    },
+    {
+      "fdcId": 1919963,
+      "description": "PLANT POWER PROTEIN BAR",
+      "dataType": "Branded",
+      "brandOwner": "CoExist Nutrition ",
+      "brandName": "22 DAYS NUTRITION",
+      "servingSize": 47,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 BAR",
+      "foodCategory": "Snack, Energy & Granola Bars",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 31.9
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 9.57
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 46.8
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 362
+        }
+      ]
+    },
+    {
+      "fdcId": 1919964,
+      "description": "PLANT POWER PROTEIN BAR",
+      "dataType": "Branded",
+      "brandOwner": "CoExist Nutrition ",
+      "brandName": "22 DAYS NUTRITION",
+      "servingSize": 44,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1 BAR",
+      "foodCategory": "Snack, Energy & Granola Bars",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 34.1
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 9.09
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 43.2
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 364
+        }
+      ]
+    },
+    {
+      "fdcId": 2664767,
+      "description": "PLANT-POWERED PROTEIN DRINK",
+      "dataType": "Branded",
+      "brandOwner": "Rawnature5",
+      "brandName": "KOIA",
+      "servingSize": 355,
+      "servingSizeUnit": "MLT",
+      "householdServingFullText": "",
+      "foodCategory": "Energy, Protein & Muscle Recovery Drinks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.35
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 1.41
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 4.23
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 51
+        }
+      ]
+    },
+    {
+      "fdcId": 2064798,
+      "description": "POWER PROTEIN SALAD SHAKER",
+      "dataType": "Branded",
+      "brandOwner": "Dierberg's Markets, Inc.",
+      "brandName": "DIERBERGS KITCHEN",
+      "servingSize": 263,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "9.28 ONZ",
+      "foodCategory": "Deli Salads",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 5.32
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 7.6
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 14.4
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 142
+        }
+      ]
+    },
+    {
+      "fdcId": 2544144,
+      "description": "PROTEIN POWER SNACK MIX",
+      "dataType": "Branded",
+      "brandOwner": "Snack World, LLC",
+      "brandName": "SNAK CLUB",
+      "servingSize": 30,
+      "servingSizeUnit": "GRM",
+      "householdServingFullText": "0.5 cup",
+      "foodCategory": "Popcorn, Peanuts, Seeds & Related Snacks",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 30
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 30
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 30
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 500
+        }
+      ]
+    },
+    {
+      "fdcId": 719180,
+      "description": "SPICY VEGGIE PROTEIN POWER",
+      "dataType": "Branded",
+      "brandOwner": "GRAZE",
+      "servingSize": 32,
+      "servingSizeUnit": "g",
+      "householdServingFullText": "1.1 ONZ",
+      "foodCategory": "Lunch Snacks & Combinations",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 18.8
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 18.8
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 53.1
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 438
+        }
+      ]
+    }
+  ]
+}
