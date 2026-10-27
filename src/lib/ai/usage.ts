@@ -12,7 +12,8 @@ export interface UsageEntry {
 
 export type RecordUsage = (entry: UsageEntry) => Promise<void>;
 
-export type AiEndpoint = "ai/analyze-meal" | "ai/chat";
+// "ai/memory" is the memory-extraction second pass after a chat turn (src/lib/memory/extract.ts).
+export type AiEndpoint = "ai/analyze-meal" | "ai/chat" | "ai/memory";
 
 export function usageRow(userId: string, endpoint: AiEndpoint, { model, usage }: UsageEntry) {
   return {

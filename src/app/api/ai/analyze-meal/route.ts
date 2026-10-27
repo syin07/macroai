@@ -7,6 +7,7 @@ import { getProvider } from "@/lib/ai/providers";
 import { createUsageRecorder } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/server";
 import { createServiceRoleClient } from "@/lib/database/admin";
+import { memoryLoader } from "@/lib/memory/retrieve";
 import { createSupabaseNutritionCache } from "@/lib/nutrition/cache";
 import { getFood, searchFoods } from "@/lib/nutrition/usda";
 import { analyzeMealRequestSchema } from "@/lib/validation";
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
         lookup: { searchFoods, getFood },
         cache: createSupabaseNutritionCache({ reader: supabase, writer: cacheWriter() }),
         recordUsage: createUsageRecorder(supabase, user.id, "ai/analyze-meal"),
+        loadMemories: memoryLoader(supabase),
       },
     );
     return Response.json(analysis, { headers: { "Cache-Control": "private, no-store" } });

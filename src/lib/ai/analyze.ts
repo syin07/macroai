@@ -43,7 +43,7 @@ export interface AnalyzeMealDeps {
   lookup: NutritionLookup;
   cache?: NutritionCache;
   recordUsage: RecordUsage;
-  // B13 adds memory retrieval; until then no memories are sent.
+  // Relevant saved memories for this message: pass memoryLoader(supabase) from src/lib/memory/retrieve.ts.
   loadMemories?: (userId: string, text: string | undefined) => Promise<string[]>;
   newId?: () => string;
 }

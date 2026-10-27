@@ -160,10 +160,10 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B13 — Memory
 
-- [ ] After each chat turn, run a cheap second pass (same provider, small prompt): "Does this exchange contain a reusable preference?" → a `save_user_memory` candidate. Save only if it's explicit ("my usual shake is…") or repeated at least twice (the same correction twice). Deduplicate against existing memories.
-- [ ] Retrieval: top 8 memories by keyword overlap with the current message, plus all `response_style` memories.
-- [ ] `GET/PATCH/DELETE /api/memories`. Deleted memories are filtered out everywhere.
-- [ ] Eval: log "Fairlife Core Power 26g" twice → "my usual shake" resolves to it; delete the memory → it no longer resolves.
+- [x] After each chat turn, run a cheap second pass (same provider, small prompt): "Does this exchange contain a reusable preference?" → a `save_user_memory` candidate. Save only if it's explicit ("my usual shake is…") or repeated at least twice (the same correction twice). Deduplicate against existing memories.
+- [x] Retrieval: top 8 memories by keyword overlap with the current message, plus all `response_style` memories.
+- [x] `GET/PATCH/DELETE /api/memories`. Deleted memories are filtered out everywhere.
+- [x] Eval: log "Fairlife Core Power 26g" twice → "my usual shake" resolves to it; delete the memory → it no longer resolves.
 - [ ] **(H8, part)**
 
 ## B14 — AI cap, export, account deletion
