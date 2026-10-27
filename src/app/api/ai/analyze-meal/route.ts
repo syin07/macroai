@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { analyzeMeal } from "@/lib/ai/analyze";
+import { assertWithinAiCap } from "@/lib/ai/cap";
 import { getProvider } from "@/lib/ai/providers";
 import { createUsageRecorder } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/server";
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
   try {
     const { user, supabase } = await requireUser();
     const body = analyzeMealRequestSchema.parse(await request.json().catch(() => null));
+    await assertWithinAiCap(supabase, user.id);
 
     const analysis = await analyzeMeal(
       { text: body.text, user: { id: user.id, timezone: body.timezone }, now: body.now ? new Date(body.now) : undefined },
