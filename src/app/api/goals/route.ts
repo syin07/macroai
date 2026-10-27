@@ -1,0 +1,39 @@
+import { z } from "zod";
+import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
+import { requireUser } from "@/lib/auth/server";
+import { getGoalsOn, saveGoals } from "@/lib/database/goals";
+import { userToday } from "@/lib/database/profile";
+import { putGoalsRequestSchema } from "@/lib/validation";
+
+const NO_STORE = { "Cache-Control": "private, no-store" };
+
+function logFailure(route: string, error: unknown) {
+  if (error instanceof ApiErrorException || error instanceof z.ZodError) return;
+  console.error(`${route} failed:`, error);
+}
+
+// GET /api/goals → NutritionGoals | null: the targets in effect today in the user's time zone.
+export async function GET() {
+  try {
+    const { user, supabase } = await requireUser();
+    const goals = await getGoalsOn(supabase, user.id, await userToday(supabase, user.id));
+    return Response.json(goals, { headers: NO_STORE });
+  } catch (error) {
+    logFailure("GET /api/goals", error);
+    return toErrorResponse(error);
+  }
+}
+
+// PUT /api/goals { calories, protein_g, carbs_g, fat_g } → NutritionGoals. New targets apply from today
+// (user's time zone); earlier days keep the targets they had.
+export async function PUT(request: Request) {
+  try {
+    const { user, supabase } = await requireUser();
+    const body = putGoalsRequestSchema.parse(await request.json().catch(() => null));
+    const goals = await saveGoals(supabase, user.id, await userToday(supabase, user.id), body);
+    return Response.json(goals, { headers: NO_STORE });
+  } catch (error) {
+    logFailure("PUT /api/goals", error);
+    return toErrorResponse(error);
+  }
+}
