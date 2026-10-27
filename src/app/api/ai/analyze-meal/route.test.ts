@@ -8,15 +8,18 @@ import { apiErrorSchema } from "@/lib/validation/errors";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 const MEAL_TEXT = "2 eggs and toast";
 
-// The user's Supabase client: records ai_usage inserts; nutrition_cache reads miss.
+// The user's Supabase client: records ai_usage inserts; answers the AI-cap count with `usageToday`;
+// nutrition_cache reads miss.
 const inserts: Array<[string, unknown]> = [];
+let usageToday = 0;
 const userClient = {
   from: (table: string) => {
     const chain = {
       insert: async (row: unknown) => (inserts.push([table, row]), { error: null }),
       select: () => chain,
       eq: () => chain,
-      maybeSingle: async () => ({ data: null, error: null }),
+      gte: async () => ({ count: usageToday, error: null }),
+      maybeSingle: async () => ({ data: table === "profiles" ? { timezone: "UTC" } : null, error: null }),
     };
     return chain;
   },
@@ -81,6 +84,8 @@ describe("POST /api/ai/analyze-meal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     inserts.length = 0;
+    usageToday = 0;
+    vi.stubEnv("AI_DAILY_CALL_CAP", "5");
     requireUser.mockResolvedValue({ user: { id: USER_ID }, supabase: userClient });
     extractMeal.mockResolvedValue({
       result: extraction,
@@ -89,7 +94,10 @@ describe("POST /api/ai/analyze-meal", () => {
       promptVersion: "extract-meal@v1",
     });
   });
-  afterEach(() => vi.restoreAllMocks());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it("returns 401 without a session, before reading the body or calling the model", async () => {
     requireUser.mockRejectedValue(new ApiErrorException("unauthenticated"));
@@ -135,6 +143,21 @@ describe("POST /api/ai/analyze-meal", () => {
     expect(inserts).toEqual([
       ["ai_usage", expect.objectContaining({ user_id: USER_ID, endpoint: "ai/analyze-meal", input_tokens: 1000, output_tokens: 200 })],
     ]);
+  });
+
+  it("allows the last call under the daily cap", async () => {
+    usageToday = 4;
+    expect((await post({ text: MEAL_TEXT, timezone: "UTC" })).status).toBe(200);
+    expect(extractMeal).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 429 ai_cap_reached at the daily cap, without calling the model", async () => {
+    usageToday = 5;
+    const response = await post({ text: MEAL_TEXT, timezone: "UTC" });
+    expect(response.status).toBe(429);
+    expect(apiErrorSchema.parse(await response.json()).error).toMatchObject({ code: "ai_cap_reached", retryable: false });
+    expect(extractMeal).not.toHaveBeenCalled();
+    expect(inserts).toEqual([]);
   });
 
   it("returns 503 when the model keeps answering badly, without logging the model's output", async () => {

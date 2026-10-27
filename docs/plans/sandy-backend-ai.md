@@ -168,9 +168,9 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B14 — AI cap, export, account deletion
 
-- [ ] AI cap: before any model call, count today's `ai_usage` rows for the user; at `AI_DAILY_CALL_CAP` return `429 ai_cap_reached`.
-- [ ] `GET /api/export`: CSV (one row per meal item, with meal columns repeated) and JSON (nested meals → items, plus messages and memories for `scope=account`).
-- [ ] `DELETE /api/account`: delete all user rows (cascade), then the auth user via the service role. Verify the other account is untouched.
+- [x] AI cap: before any model call, count today's `ai_usage` rows for the user; at `AI_DAILY_CALL_CAP` return `429 ai_cap_reached`.
+- [x] `GET /api/export`: CSV (one row per meal item, with meal columns repeated) and JSON (nested meals → items, plus messages and memories for `scope=account`).
+- [x] `DELETE /api/account`: delete all user rows (cascade), then the auth user via the service role. Verify the other account is untouched.
 - [ ] **(H8)** Tell Ken.
 
 ## B15 — Security, eval, release

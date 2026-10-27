@@ -1,8 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Service-role client: bypasses RLS. Server-only, and only for writes users may not make themselves
-// (nutrition_cache today). Never use it to read or write user-owned rows on a user's behalf; route
-// handlers use the session client from requireUser() for that.
+// Service-role client: bypasses RLS. Server-only, and only for writes users may not make themselves:
+// nutrition_cache, and deleting the session user's own auth row (account.ts). Never use it to read or
+// write user-owned rows on a user's behalf; route handlers use the session client from requireUser().
 
 let client: SupabaseClient | null = null;
 
