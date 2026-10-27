@@ -66,9 +66,9 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 - [ ] **Test set (with Ken):** each of you photographs and weighs 15+ real meals (30+ total). Weigh each component on a kitchen scale *before* combining. Include: single items, mixed plates, a pasta/rice dish with sauce, a sandwich, something fried, a packaged snack, a restaurant/takeout meal.
 - [ ] Store as `tests/eval/cases/<id>/photo.jpg` + `truth.json` (`{ items: [{ name, grams, fdc_id }], notes }`). Compute true macros from USDA per item with a script, `tests/eval/compute-truth.ts`. Keep photos out of git if the repo is public (use a private bucket or `.gitignore` + shared drive).
-- [ ] Add 20+ text cases to `tests/eval/text-cases.jsonl` (`{ input, expected_items }`): simple, multi-item, informal units ("a scoop", "a handful"), three meals in one message, a hypothetical ("should I eat pizza?") that must log nothing.
-- [ ] Write the extraction prompt v1 (`src/lib/ai/prompts/extract-meal.ts`). It returns the PRD §5.6 schema: foods, grams or units, preparation, `inferred` hidden ingredients, confidence, `search_query`.
-- [ ] Write the provider interface `src/lib/ai/provider.ts`:
+- [x] Add 20+ text cases to `tests/eval/text-cases.jsonl` (`{ input, expected_items }`): simple, multi-item, informal units ("a scoop", "a handful"), three meals in one message, a hypothetical ("should I eat pizza?") that must log nothing.
+- [x] Write the extraction prompt v1 (`src/lib/ai/prompts/extract-meal.ts`). It returns the PRD §5.6 schema: foods, grams or units, preparation, `inferred` hidden ingredients, confidence, `search_query`.
+- [x] Write the provider interface `src/lib/ai/provider.ts`:
   ```ts
   interface AIProvider {
     extractMeal(input: { text?: string; imageJpeg?: Buffer; now: string; timezone: string; memories: string[] }): Promise<ExtractionResult>;
@@ -76,7 +76,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
   }
   ```
   Write adapters for the three candidates: Gemini 3.1 Flash-Lite, Claude Haiku 5.5 (`claude-haiku-5-5`), and an affordable OpenAI vision model. Use each one's official SDK and structured-output mode.
-- [ ] Write the harness `tests/eval/run-bakeoff.ts`: run every case through every adapter → USDA lookup (B5's matcher, or a simple version) → totals. Record per case: calorie error %, protein error (g), food-identification hits, schema validity, latency, and token cost.
+- [x] Write the harness `tests/eval/run-bakeoff.ts`: run every case through every adapter → USDA lookup (B5's matcher, or a simple version) → totals. Record per case: calorie error %, protein error (g), food-identification hits, schema validity, latency, and token cost.
 - [ ] Write up results in `docs/bakeoff-results.md`: a table per model with median and mean calorie error, protein error, % valid JSON, p50/p90 latency, and $ per 1,000 photos. Pick the winner, and note the runner-up as a fallback.
 - [ ] Check the winner's API data policy (no training on inputs; retention period; zero-retention option) and record it in the results doc.
 - [ ] Set `AI_PROVIDER` and set the real calorie-error target in PRD §20.
