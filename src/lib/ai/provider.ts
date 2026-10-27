@@ -55,11 +55,17 @@ export interface ToolResult {
 
 export type ProviderMessage =
   | { role: "user"; text: string }
-  | { role: "assistant"; text: string; toolCalls: ToolCall[] }
+  // providerContent: the turn's raw content from ProviderTurn.providerContent, replayed unchanged within
+  // the same tool loop (Claude needs its thinking blocks back next to the tool calls they led to).
+  | { role: "assistant"; text: string; toolCalls: ToolCall[]; providerContent?: unknown }
   | { role: "tool"; results: ToolResult[] };
 
 export interface ChatInput {
+  // Stable instructions, identical for every user and request, so providers can cache them together
+  // with the tool list (Anthropic cache_control). Never put dates, names, or user data here.
   system: string;
+  // Per-request context (today's date, save mode, daily totals, memories), sent after `system`.
+  context?: string;
   messages: ProviderMessage[];
   tools: ToolDef[];
 }
@@ -70,6 +76,13 @@ export interface ProviderTurn {
   stopReason: "end" | "tool_calls" | "max_tokens" | "refusal" | "other";
   usage: TokenUsage;
   model: string;
+  // Opaque provider content to pass back on the assistant message (see ProviderMessage). Never logged.
+  providerContent?: unknown;
+}
+
+// For providers without a separately cached system block: the two parts joined.
+export function joinSystem(input: Pick<ChatInput, "system" | "context">): string {
+  return input.context ? `${input.system}\n\n${input.context}` : input.system;
 }
 
 export interface AIProvider {
