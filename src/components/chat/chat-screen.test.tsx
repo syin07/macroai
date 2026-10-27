@@ -22,6 +22,11 @@ vi.mock("@/lib/api", async (original) => ({
   getDaily: vi.fn(),
   sendChat: vi.fn(),
 }));
+vi.mock("@/lib/image/downscale", () => ({
+  downscale: vi.fn(
+    async () => new Blob(["compressed"], { type: "image/jpeg" }),
+  ),
+}));
 const user: ChatMessage = {
   id: "user-1",
   client_message_id: null,
@@ -48,6 +53,8 @@ const daily = {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  URL.createObjectURL = vi.fn(() => "blob:preview");
+  URL.revokeObjectURL = vi.fn();
   vi.mocked(api.getMessages).mockResolvedValue({
     messages: [],
     has_more: false,
@@ -118,7 +125,7 @@ it("keeps failed text and photo, retries with the same ID, and renders exactly o
   fireEvent.change(screen.getByLabelText("Choose meal photo"), {
     target: { files: [image] },
   });
-  await screen.findByText("Photo · meal.jpg");
+  await screen.findByText("Photo ready");
   fireEvent.change(screen.getByRole("textbox"), {
     target: { value: user.text },
   });
@@ -127,15 +134,17 @@ it("keeps failed text and photo, retries with the same ID, and renders exactly o
   expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(
     user.text,
   );
-  expect(screen.getByText("Photo · meal.jpg")).toBeTruthy();
+  expect(screen.getByText("Photo ready")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   await screen.findByText(assistant.text);
   const calls = vi.mocked(api.sendChat).mock.calls;
   expect(calls[1][0]).toBe(calls[0][0]);
-  expect(calls[1][0].image).toBe(image);
+  expect(calls[1][0].image).toBe(calls[0][0].image);
+  expect(calls[1][0].image).not.toBe(image);
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:preview");
   expect(screen.getAllByText(user.text)).toHaveLength(1);
   expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe("");
-  expect(screen.queryByText("Photo · meal.jpg")).toBeNull();
+  expect(screen.queryByText("Photo ready")).toBeNull();
   expect(client.getQueryData(queryKeys.messages)).toBeTruthy();
 });
 it("shows a pending bubble, prevents double send and clears the draft only after success", async () => {

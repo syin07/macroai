@@ -7,13 +7,14 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { ArrowDown, ArrowUp, ImagePlus, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, Plus } from "lucide-react";
 import { ApiClientError, createChatDraft, type ChatDraft } from "@/lib/api";
 import { useMessages, useSendChat } from "@/hooks/use-api";
 import type { ChatMessage } from "@/types/api";
 import { Brand } from "@/components/shared/brand";
 import { HeaderLink } from "@/components/shared/page-frame";
 import { MessageMealCards } from "@/components/meals/message-meal-cards";
+import { PhotoInput } from "./photo-input";
 import { DailyStrip } from "./daily-strip";
 import { ManualLog } from "./manual-log";
 import { nearBottom } from "./scroll-position";
@@ -29,8 +30,7 @@ export function ChatScreen() {
   const history = useMessages();
   const send = useSendChat();
   const [text, setText] = useState("");
-  const [image, setImage] = useState<File | undefined>();
-  const [attachmentError, setAttachmentError] = useState("");
+  const [image, setImage] = useState<Blob | undefined>();
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [local, setLocal] = useState<{
     draft: ChatDraft;
@@ -45,13 +45,11 @@ export function ChatScreen() {
   });
   const list = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const photo = useRef<HTMLInputElement>(null);
   const follows = useRef(true);
   const prepend = useRef<{ height: number; top: number } | null>(null);
   const loadingEarlier = useRef(false);
   const sending = useRef(false);
   const initialScroll = useRef(false);
-  const photoSelection = useRef(0);
   const messages = history.data?.messages ?? [];
   const historyUnavailable = history.isError && !history.data;
   const shownLocal =
@@ -163,7 +161,6 @@ export function ChatScreen() {
       setText("");
       setImage(undefined);
       setLocal(null);
-      if (photo.current) photo.current.value = "";
     } catch {
       setLocal({ draft, message: { ...message, status: "error" } });
     } finally {
@@ -290,7 +287,12 @@ export function ChatScreen() {
                     >
                       {message.had_image && (
                         <p className="mb-1 text-xs text-muted-foreground">
-                          Photo attached
+                          <Camera
+                            size={12}
+                            className="inline"
+                            aria-hidden="true"
+                          />{" "}
+                          Photo
                         </p>
                       )}
                       {message.text &&
@@ -386,28 +388,15 @@ export function ChatScreen() {
               </div>
             </div>
           )}
-          {attachmentError && (
-            <p role="alert" className="mb-2 text-sm">
-              {attachmentError}
-            </p>
-          )}
-          {image && (
-            <div className="mb-2 flex items-center gap-2 text-sm">
-              <span className="min-w-0 truncate">Photo · {image.name}</span>
-              <button
-                aria-label="Remove photo"
-                disabled={send.isPending || preparingPhoto}
-                className="chat-icon-button"
-                onClick={() => {
-                  changeDraft();
-                  setImage(undefined);
-                  if (photo.current) photo.current.value = "";
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
+          <PhotoInput
+            image={image}
+            disabled={send.isPending}
+            onPreparing={setPreparingPhoto}
+            onChange={(next) => {
+              changeDraft();
+              setImage(next);
+            }}
+          />
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -449,15 +438,6 @@ export function ChatScreen() {
               <div className="flex">
                 <button
                   type="button"
-                  aria-label="Attach photo"
-                  className="chat-icon-button"
-                  disabled={send.isPending}
-                  onClick={() => photo.current?.click()}
-                >
-                  <ImagePlus size={20} />
-                </button>
-                <button
-                  type="button"
                   aria-label="Log manually"
                   className="chat-icon-button"
                   disabled={send.isPending}
@@ -482,54 +462,6 @@ export function ChatScreen() {
               </button>
             </div>
           </form>
-          <input
-            ref={photo}
-            type="file"
-            accept="image/jpeg"
-            className="sr-only"
-            tabIndex={-1}
-            aria-label="Choose meal photo"
-            disabled={send.isPending}
-            onChange={async (event) => {
-              const input = event.currentTarget;
-              const file = input.files?.[0];
-              if (!file) return;
-              const selection = ++photoSelection.current;
-              setPreparingPhoto(true);
-              setAttachmentError("");
-              // A8 adds camera/library resizing; A5 accepts already-sized JPEGs.
-              try {
-                if (file.type !== "image/jpeg" || file.size > 1_500_000)
-                  throw new Error("Choose a JPEG under 1.5 MB.");
-                const bitmap = await createImageBitmap(file);
-                const longest = Math.max(bitmap.width, bitmap.height);
-                bitmap.close();
-                if (longest > 1024)
-                  throw new Error(
-                    "Choose a photo no larger than 1024 pixels on its longest side.",
-                  );
-                if (selection === photoSelection.current) {
-                  changeDraft();
-                  setImage(file);
-                }
-              } catch (error) {
-                setAttachmentError(
-                  error instanceof Error
-                    ? error.message
-                    : "This photo couldn’t open.",
-                );
-                input.value = "";
-              } finally {
-                if (selection === photoSelection.current)
-                  setPreparingPhoto(false);
-              }
-            }}
-          />
-          {preparingPhoto && (
-            <p role="status" className="mt-2 text-sm text-muted-foreground">
-              Checking photo…
-            </p>
-          )}
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
             Estimates can vary. Review your meal before saving.
           </p>
