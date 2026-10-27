@@ -57,3 +57,28 @@ cases/sandy-01-chicken-rice/
 ## Nutrition lookup
 
 `lib/nutrition-lookup.ts` defines a `NutritionLookup` interface. The bake-off uses `MatcherLookup`, which wraps B5's matcher (`src/lib/nutrition/match.ts`), so foods are ranked and rejected exactly as in production; responses are cached in `.cache/usda-matcher.json`. `compute-truth.ts` still uses the simpler `UsdaApiLookup`, since it only fetches foods by exact FDC ID. Totals use `src/lib/nutrition/calc.ts`.
+
+## History cases: `history-cases.jsonl` (B11)
+
+Deterministic checks for history questions: no model and no API calls. `lib/history-cases.test.ts` runs every case in `npm test`. For each case it seeds the fixture meals into the in-memory Supabase (`src/lib/database/__fixtures__/fake-db.ts`, which emulates RLS and `list_meals`), makes the call that B8's `search_meal_history` tool would make, and checks the numbers. Date phrases are already resolved in `call.args`. Turning "last Tuesday" into a date is B10's job, and its eval cases cover it.
+
+One JSON object per line (shortened here; the schema is `historyCaseSchema` in `lib/history-cases.test.ts`):
+
+```json
+{"id":"h05-missing-days-not-zero","question":"what's my average protein over the last 7 days?","now":"2026-10-28T21:00:00-07:00","timezone":"America/Los_Angeles",
+ "meals":[{"name":"Thu","consumed_at":"2026-10-22T12:00:00-07:00","totals":{"calories":2000,"protein_g":140,"carbs_g":200,"fat_g":70}},
+          {"name":"Sun deleted","consumed_at":"2026-10-25T12:00:00-07:00","totals":{"calories":900,"protein_g":50,"carbs_g":90,"fat_g":30},"status":"pending_deletion"}],
+ "call":{"fn":"searchMealHistory","args":{"from":"2026-10-22","to":"2026-10-28","aggregate":true}},
+ "expect":{"days_in_range":7,"days_with_records":4,"missing_dates":["2026-10-23","2026-10-25","2026-10-26"],"average_per_recorded_day":{"protein_g":120}}}
+```
+
+- `now` and `timezone` set the user's clock and zone. Local days follow `timezone`.
+- `meals[]`: saved meals for the one test user. `totals` are stored exactly as given. `items` are food names (each item gets an equal share of the totals) and default to the meal name. `status: "pending_deletion"` meals must never show up in a result.
+- `call.fn` is `searchMealHistory` (args: `from`, `to`, `q`, `limit`, `aggregate`) or `findLastMealMatching` (args: `q`, `before`). Dates are local `YYYY-MM-DD` and inclusive.
+- `expect` holds only the fields you want checked. Macro numbers must match within ±0.001, so averages may be written to 3 decimals. The fields are:
+  - `meal_names`: newest first.
+  - `to`: the range end after clamping to today.
+  - `days_in_range`, `days_with_records`, `missing_dates`, `includes_today`.
+  - `sum` and `average_per_recorded_day`: partial macros, or `null` for "no recorded days".
+  - `last_match`: `meal_name`, `local_date`, `days_ago`, `matched_items`, `totals`, or `null`.
+- PRD §13: averages divide by recorded days only, and a missing day is never counted as zero. Every case set must keep at least one case with `missing_dates`.
