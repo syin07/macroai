@@ -1,10 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { matchFood } from "@/lib/nutrition/match";
+import { createUsdaClient, type NutritionLookup as UsdaClient, type UsdaFood as ClientFood } from "@/lib/nutrition/usda";
 import type { Macros } from "@/types/api";
 
-// The seam between the bake-off and nutrition matching. UsdaApiLookup below is a deliberately simple
-// stand-in (top search hit, no ranking). Swap in B5's matcher (src/lib/nutrition/match.ts) by writing
-// another NutritionLookup; nothing else in tests/eval needs to change.
+// The seam between the bake-off and nutrition matching. MatcherLookup (bottom) uses B5's matcher, the
+// same ranking and rejection rules production will use. UsdaApiLookup is the earlier stand-in (top
+// search hit, no ranking); compute-truth.ts still uses it for getFood by exact FDC ID, where ranking
+// doesn't matter.
 
 export interface FoodBasis {
   fdcId: number;
@@ -165,4 +168,76 @@ export class UsdaApiLookup implements NutritionLookup {
     }
     return this.cache;
   }
+}
+
+// --- B5 matcher (src/lib/nutrition/match.ts) --------------------------------------------------------
+
+// Asks the matcher for a 100 g portion so it returns the per-100 g basis; the pipeline then scales by the
+// model's own gram estimate, which is what the bake-off compares across models.
+export class MatcherLookup implements NutritionLookup {
+  constructor(private readonly client: UsdaClient) {}
+
+  async search(query: FoodQuery): Promise<FoodBasis | null> {
+    const result = await matchFood(
+      {
+        name: query.name,
+        quantity: 100,
+        unit: "g",
+        preparation: query.preparation,
+        inferred: false,
+        confidence: "medium",
+        search_query: query.searchQuery,
+        brand: query.brand,
+      },
+      this.client,
+    );
+    if (result.status === "unmatched" && result.reason === "lookup_failed") {
+      console.warn(`  USDA lookup failed for "${query.searchQuery}"; using the model's estimate`);
+    }
+    const basis = result.status === "matched" ? result.item.basis_per_100g : null;
+    if (result.status !== "matched" || !basis) return null;
+    return {
+      fdcId: result.match.food.fdcId,
+      description: result.match.food.description,
+      dataType: result.match.food.dataType,
+      basisPer100g: basis,
+    };
+  }
+
+  async getFood(fdcId: number): Promise<FoodBasis | null> {
+    const food = await this.client.getFood(fdcId);
+    return food?.basis_per_100g
+      ? { fdcId: food.fdcId, description: food.description, dataType: food.dataType, basisPer100g: food.basis_per_100g }
+      : null;
+  }
+}
+
+// B5's USDA client with responses cached on disk, so reruns don't spend the 1,000/hour quota.
+export function cachedUsdaClient(options: { apiKey: string; cacheFile: string; fetchImpl?: Fetch }): UsdaClient {
+  const client = createUsdaClient({ apiKey: options.apiKey, fetch: options.fetchImpl });
+  let cache: Record<string, unknown> | undefined;
+
+  async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+    if (!cache) {
+      try {
+        cache = JSON.parse(await readFile(options.cacheFile, "utf8")) as Record<string, unknown>;
+      } catch {
+        cache = {};
+      }
+    }
+    if (key in cache) return cache[key] as T;
+    const value = await load();
+    cache[key] = value;
+    await mkdir(path.dirname(options.cacheFile), { recursive: true });
+    await writeFile(options.cacheFile, JSON.stringify(cache));
+    return value;
+  }
+
+  return {
+    searchFoods: (query, searchOptions) =>
+      cached(`search:${(searchOptions?.dataTypes ?? []).join("+")}:${searchOptions?.pageSize ?? ""}:${query.toLowerCase()}`, () =>
+        client.searchFoods(query, searchOptions),
+      ),
+    getFood: (fdcId) => cached<ClientFood | null>(`food:${fdcId}`, () => client.getFood(fdcId)),
+  };
 }

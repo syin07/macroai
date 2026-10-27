@@ -10,8 +10,8 @@ export interface ModelPrice {
 export const MODEL_PRICES: Record<string, ModelPrice | null> = {
   "gemini-3.1-flash-lite": { inputPerMTok: 0.25, outputPerMTok: 1.5 },
   "claude-haiku-5-5": { inputPerMTok: 0.1, outputPerMTok: 0.5 },
-  // TODO(B4): confirm OpenAI mini-tier pricing on openai.com/api/pricing before the bake-off.
-  "gpt-5.4-mini": null,
+  // Confirmed 2026-10-26 on developers.openai.com/api/docs/pricing (standard tier).
+  "gpt-5.4-mini": { inputPerMTok: 0.75, outputPerMTok: 4.5 },
 };
 
 export function costUsd(model: string, usage: TokenUsage): number | null {

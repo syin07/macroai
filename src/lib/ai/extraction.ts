@@ -144,6 +144,10 @@ export interface TokenUsage {
   outputTokens: number; // includes reasoning / thinking tokens, which are billed as output
 }
 
+// Why there's no ExtractionResult. refusal / max_tokens / safety come from the provider's stop reason and
+// are checked before parsing, so they're never mistaken for malformed JSON; retrying them rarely helps.
+export type ExtractionFailure = "invalid_json" | "schema_mismatch" | "refusal" | "max_tokens" | "safety";
+
 // The model answered, but not with a valid ExtractionResult. Carries the raw text and token usage so
 // callers can retry (B6) or score it as invalid (bake-off) without losing the cost.
 export class ExtractionOutputError extends Error {
@@ -152,6 +156,7 @@ export class ExtractionOutputError extends Error {
     readonly raw: string,
     readonly usage: TokenUsage,
     readonly issues: z.core.$ZodIssue[] = [],
+    readonly failure: ExtractionFailure = issues.length > 0 ? "schema_mismatch" : "invalid_json",
   ) {
     super(message);
     this.name = "ExtractionOutputError";

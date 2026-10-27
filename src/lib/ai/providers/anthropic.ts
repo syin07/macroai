@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS } from "./shared";
+import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS, throwIfIncomplete, type IncompleteStop } from "./shared";
 import { extractionJsonSchema, parseExtractionOutput, type TokenUsage } from "../extraction";
 import { EXTRACT_MEAL_PROMPT_VERSION, EXTRACT_MEAL_SYSTEM_PROMPT, buildExtractMealUserText } from "../prompts/extract-meal";
 import {
@@ -51,6 +51,7 @@ export class AnthropicProvider implements AIProvider {
 
     const usage = toUsage(response.usage);
     const raw = response.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("");
+    throwIfIncomplete(anthropicIncomplete(response.stop_reason), response.stop_reason ?? "unknown", raw, usage);
     return {
       result: parseExtractionOutput(raw, usage),
       usage,
@@ -92,6 +93,12 @@ const STOP_REASONS: Record<string, ProviderTurn["stopReason"]> = {
   max_tokens: "max_tokens",
   refusal: "refusal",
 };
+
+export function anthropicIncomplete(stopReason: string | null): IncompleteStop | null {
+  if (stopReason === "refusal") return "refusal";
+  if (stopReason === "max_tokens") return "max_tokens";
+  return null;
+}
 
 function toUsage(usage: Anthropic.Usage): TokenUsage {
   return {

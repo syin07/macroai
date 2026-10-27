@@ -64,8 +64,7 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 
 Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
-- [ ] **Test set (with Ken):** each of you photographs and weighs 15+ real meals (30+ total). Weigh each component on a kitchen scale *before* combining. Include: single items, mixed plates, a pasta/rice dish with sauce, a sandwich, something fried, a packaged snack, a restaurant/takeout meal.
-- [ ] Store as `tests/eval/cases/<id>/photo.jpg` + `truth.json` (`{ items: [{ name, grams, fdc_id }], notes }`). Compute true macros from USDA per item with a script, `tests/eval/compute-truth.ts`. Keep photos out of git if the repo is public (use a private bucket or `.gitignore` + shared drive).
+- [ ] The bake-off uses the text cases plus any ad-hoc photos; there is no weighed-photo test set.
 - [x] Add 20+ text cases to `tests/eval/text-cases.jsonl` (`{ input, expected_items }`): simple, multi-item, informal units ("a scoop", "a handful"), three meals in one message, a hypothetical ("should I eat pizza?") that must log nothing.
 - [x] Write the extraction prompt v1 (`src/lib/ai/prompts/extract-meal.ts`). It returns the PRD §5.6 schema: foods, grams or units, preparation, `inferred` hidden ingredients, confidence, `search_query`.
 - [x] Write the provider interface `src/lib/ai/provider.ts`:
@@ -134,7 +133,6 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [ ] Merge the text caption into the same extraction call.
 - [ ] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
 - [ ] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
-- [ ] Re-run the photo bake-off cases through the full pipeline; record the numbers in `docs/bakeoff-results.md`.
 - [ ] **(H5)** Tell Ken photos are live.
 
 **Done when:** a phone photo taken through the real UI produces a card, and nothing image-related exists in the database or storage afterwards.

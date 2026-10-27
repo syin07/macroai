@@ -6,7 +6,10 @@ Plan step B4; PRD §5.4 and §16.3. Run everything from the repo root. Keys are 
 npx tsx tests/eval/compute-truth.ts                    # USDA truth for photo cases (USDA_API_KEY)
 npx tsx tests/eval/run-bakeoff.ts                      # all cases × gemini, anthropic, openai
 npx tsx tests/eval/run-bakeoff.ts --providers anthropic --only text --case t09-three-meals
+npx tsx tests/eval/run-bakeoff.ts --only text --max-usd 0.10      # hard spend cap (default $0.25)
 ```
+
+The runner refuses any model without a price in `src/lib/ai/pricing.ts`, and stops as soon as billed tokens reach `--max-usd`. A full text run (25 cases) costs about 2¢ for Haiku, 3¢ for Gemini, and 11¢ for `gpt-5.4-mini`.
 
 Output goes to `results/<timestamp>/` (gitignored): `results.jsonl` has one record per case × provider, and `summary.md` has the tables for `docs/bakeoff-results.md`.
 
@@ -22,7 +25,9 @@ One JSON object per line. The schema is `textCaseSchema` in `lib/cases.ts`.
 - `expected_items[].grams`: only for weights stated exactly in the input. It's checked within ±10%.
 - Optional fields: `expected_intent` (default `log_meal`), `memories`, `expect_inferred`, `expect_clarification`, `expected_local_date`, `now`, and `timezone`. The default clock is fixed at `2026-10-26T12:30:00-07:00` in `America/Los_Angeles`, so date phrases resolve the same way on every run.
 
-## Weighed photo cases: `cases/<id>/`
+## Weighed photo cases: `cases/<id>/` (optional)
+
+We decided not to build a weighed-photo test set. The format below still works for any ad-hoc photos you weigh.
 
 ```
 cases/sandy-01-chicken-rice/
@@ -51,4 +56,4 @@ cases/sandy-01-chicken-rice/
 
 ## Nutrition lookup
 
-`lib/nutrition-lookup.ts` defines a `NutritionLookup` interface. For now, `UsdaApiLookup` is a simple stand-in: it takes the top USDA search hit and doesn't rank results. Responses are cached in `.cache/usda.json`. When B5's matcher lands, wrap it in a `NutritionLookup` and pass that to `runBakeoff` instead. In `lib/pipeline.ts`, replace `macrosForGrams`/`sumMacros` with `src/lib/nutrition/calc.ts`.
+`lib/nutrition-lookup.ts` defines a `NutritionLookup` interface. The bake-off uses `MatcherLookup`, which wraps B5's matcher (`src/lib/nutrition/match.ts`), so foods are ranked and rejected exactly as in production; responses are cached in `.cache/usda-matcher.json`. `compute-truth.ts` still uses the simpler `UsdaApiLookup`, since it only fetches foods by exact FDC ID. Totals use `src/lib/nutrition/calc.ts`.

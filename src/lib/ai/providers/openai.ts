@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS } from "./shared";
-import { EXTRACTION_SCHEMA_NAME, ExtractionOutputError, extractionJsonSchema, parseExtractionOutput, type TokenUsage } from "../extraction";
+import { EXTRACTION_MAX_OUTPUT_TOKENS, PROVIDER_TIMEOUT_MS, throwIfIncomplete, type IncompleteStop } from "./shared";
+import { EXTRACTION_SCHEMA_NAME, extractionJsonSchema, parseExtractionOutput, type TokenUsage } from "../extraction";
 import { EXTRACT_MEAL_PROMPT_VERSION, EXTRACT_MEAL_SYSTEM_PROMPT, buildExtractMealUserText } from "../prompts/extract-meal";
 import {
   imageToBase64,
@@ -62,10 +62,16 @@ export class OpenAIProvider implements AIProvider {
     });
 
     const usage = toUsage(completion.usage);
-    const message = completion.choices[0]?.message;
-    if (message?.refusal) throw new ExtractionOutputError(`Model refused: ${message.refusal}`, "", usage);
+    const choice = completion.choices[0];
+    const raw = choice?.message?.content ?? "";
+    throwIfIncomplete(
+      openaiIncomplete(choice?.finish_reason, choice?.message?.refusal),
+      choice?.message?.refusal ?? choice?.finish_reason ?? "unknown",
+      raw,
+      usage,
+    );
     return {
-      result: parseExtractionOutput(message?.content ?? "", usage),
+      result: parseExtractionOutput(raw, usage),
       usage,
       model: completion.model,
       promptVersion: EXTRACT_MEAL_PROMPT_VERSION,
@@ -107,6 +113,13 @@ const FINISH_REASONS: Record<string, ProviderTurn["stopReason"]> = {
   length: "max_tokens",
   content_filter: "refusal",
 };
+
+export function openaiIncomplete(finishReason: string | undefined, refusal: string | null | undefined): IncompleteStop | null {
+  if (refusal) return "refusal";
+  if (finishReason === "length") return "max_tokens";
+  if (finishReason === "content_filter") return "safety";
+  return null;
+}
 
 function toUsage(usage: OpenAI.CompletionUsage | undefined): TokenUsage {
   // completion_tokens already includes reasoning tokens.

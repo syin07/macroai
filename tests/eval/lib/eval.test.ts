@@ -3,7 +3,7 @@ import { ExtractionOutputError, type ExtractedFood, type ExtractionResult } from
 import type { AIProvider } from "@/lib/ai/provider";
 import { renderSummary, runBakeoff, summarize } from "./bakeoff";
 import { loadTextCases, parseTextCases, textCaseSchema, type PhotoCase } from "./cases";
-import { UsdaApiLookup, basisFromUsdaFood, type FoodBasis, type NutritionLookup } from "./nutrition-lookup";
+import { MatcherLookup, UsdaApiLookup, basisFromUsdaFood, type FoodBasis, type NutritionLookup } from "./nutrition-lookup";
 import { priceExtraction } from "./pipeline";
 import { localDate, matchItems, median, percentile, scorePhotoCase, scoreTextCase, truthKeywords } from "./score";
 import { computeTruth } from "./truth";
@@ -209,6 +209,32 @@ describe("UsdaApiLookup", () => {
   it("returns null for an unknown FDC ID", async () => {
     const lookup = new UsdaApiLookup({ fetchImpl: fakeFetch({}, 404) });
     expect(await lookup.getFood(999)).toBeNull();
+  });
+});
+
+describe("MatcherLookup", () => {
+  const rice = (fdcId: number, description: string, calories: number) => ({
+    fdcId,
+    description,
+    dataType: "SR Legacy",
+    brand: null,
+    basis_per_100g: { calories, protein_g: 2.7, carbs_g: 28, fat_g: 0.3 },
+    portions: [],
+    serving: null,
+  });
+
+  it("returns B5's ranked match and rejects the wrong preparation", async () => {
+    const lookup = new MatcherLookup({
+      searchFoods: async () => [rice(1, "Rice, white, long-grain, regular, raw, enriched", 365), rice(2, "Rice, white, long-grain, regular, enriched, cooked", 130)],
+      getFood: async () => null,
+    });
+    const match = await lookup.search({ searchQuery: "rice, white, cooked", name: "Cooked white rice", preparation: "boiled", brand: null });
+    expect(match).toMatchObject({ fdcId: 2, basisPer100g: { calories: 130 } });
+  });
+
+  it("returns null rather than an unrelated food", async () => {
+    const lookup = new MatcherLookup({ searchFoods: async () => [rice(3, "Rice flour, white", 366)], getFood: async () => null });
+    expect(await lookup.search({ searchQuery: "rice, white, cooked", name: "Rice", preparation: null, brand: null })).toBeNull();
   });
 });
 
