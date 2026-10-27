@@ -80,7 +80,7 @@ export function createMockApi(
   function dateOf(value: string | Date) {
     return formatInTimeZone(value, preferences.timezone, "yyyy-MM-dd");
   }
-  function reset() {
+  function reset(seedCount = options.seedCount ?? 205) {
     fixtures = createFixtures(now());
     preferences = {
       theme: "system",
@@ -120,7 +120,7 @@ export function createMockApi(
     chats.clear();
     pendingChats.clear();
     nextError = undefined;
-    for (let i = 0; i < (options.seedCount ?? 205); i++) {
+    for (let i = 0; i < seedCount; i++) {
       const meal = copy(fixtures.autoSaved);
       meal.id = crypto.randomUUID();
       meal.items = meal.items.map((item) => ({
@@ -151,7 +151,7 @@ export function createMockApi(
           created_at: meal.consumed_at,
         });
     }
-    messages.push(copy(fixtures.deletedMessage));
+    if (seedCount > 0) messages.push(copy(fixtures.deletedMessage));
     messages.sort(
       (a, b) =>
         a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),

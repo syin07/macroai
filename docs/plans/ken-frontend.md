@@ -92,6 +92,8 @@ The core of the app. Spend the most polish here.
 
 **Done when (mock mode):** sending text shows the right card fixtures, errors keep the draft, and scrolling back loads older pages smoothly.
 
+A5 implementation is on `ken/a5-chat-screen`, stacked on A4 for review. Includes chronological pagination with scroll anchoring, optimistic sends, retained text/photo drafts and same-ID retry, first-use prompts, a collapsible totals strip, and a minimal working manual-entry form for the AI-cap fallback. Meal cards are read-only until A6/A7; A8 adds camera/library choices, downscaling, and thumbnails (A5 accepts already-sized JPEGs only). A9 expands the summary and A10 completes save/undo/manual-card behavior. Browser sizes and both themes are checked; physical iPhone Safari/Android Chrome keyboard behavior and real endpoints remain unverified. Keep boxes open until merge and the relevant device/integration checks.
+
 ## A6 — Meal card
 
 `src/components/meals/meal-card.tsx`.

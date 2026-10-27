@@ -91,6 +91,72 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.chat-screen {
+  position: fixed;
+  top: var(--chat-top, 0px);
+  left: env(safe-area-inset-left);
+  right: env(safe-area-inset-right);
+  display: flex;
+  flex-direction: column;
+  height: calc(
+    var(--chat-viewport, 100dvh) - 80px - env(safe-area-inset-bottom)
+  );
+  overflow: hidden;
+}
+.chat-screen[data-keyboard="true"] {
+  height: var(--chat-viewport);
+}
+.app-shell:has(.chat-screen[data-keyboard="true"]) .app-mobile-nav {
+  display: none;
+}
+.chat-messages {
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+}
+.chat-text-button {
+  min-height: 44px;
+  padding: 8px 4px;
+  color: var(--app-accent);
+  font-size: 14px;
+}
+.chat-icon-button,
+.chat-send-button {
+  display: inline-flex;
+  height: 44px;
+  width: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+.chat-icon-button {
+  color: var(--muted-foreground);
+}
+.chat-icon-button:hover {
+  background: var(--app-accent-soft);
+}
+.chat-send-button {
+  background: var(--app-accent);
+  color: var(--background);
+}
+.chat-screen button {
+  cursor: pointer;
+}
+.chat-screen button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chat-screen button:focus-visible,
+.chat-messages:focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 2px;
+}
+@media (min-width: 768px) {
+  .chat-screen {
+    left: calc(224px + env(safe-area-inset-left));
+    height: calc(var(--chat-viewport, 100dvh) - env(safe-area-inset-bottom));
+  }
+}
+
 .app-sidebar {
   width: calc(224px + env(safe-area-inset-left));
   background: var(--app-sidebar);

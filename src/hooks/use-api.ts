@@ -6,10 +6,11 @@ import {
   useQuery,
   useQueryClient,
   type QueryClient,
+  type InfiniteData,
 } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
 import * as api from "@/lib/api";
-import type { DailySummary } from "@/types/api";
+import type { DailySummary, MessagesPage } from "@/types/api";
 
 export const queryKeys = {
   daily: (date?: string) => ["daily", date ?? "today"] as const,
@@ -121,8 +122,45 @@ export function useSendChat() {
   return useMutation({
     mutationFn: (draft: api.ChatDraft) => api.sendChat(draft),
     onSuccess: async (result) => {
+      await client.cancelQueries({ queryKey: queryKeys.messages });
+      client.setQueryData<InfiniteData<MessagesPage>>(
+        queryKeys.messages,
+        (old) => {
+          if (!old)
+            return {
+              pages: [
+                {
+                  messages: [result.user_message, result.assistant_message],
+                  has_more: false,
+                },
+              ],
+              pageParams: [undefined],
+            };
+          const ids = new Set([
+            result.user_message.id,
+            result.assistant_message.id,
+          ]);
+          return {
+            ...old,
+            pages: old.pages.map((page, index) => ({
+              ...page,
+              messages: [
+                ...page.messages.filter(
+                  (message) =>
+                    !ids.has(message.id) &&
+                    (!result.user_message.client_message_id ||
+                      message.client_message_id !==
+                        result.user_message.client_message_id),
+                ),
+                ...(index === 0
+                  ? [result.user_message, result.assistant_message]
+                  : []),
+              ],
+            })),
+          };
+        },
+      );
       if (result.daily_summary) await update([result.daily_summary]);
-      else void client.invalidateQueries({ queryKey: queryKeys.messages });
     },
   });
 }
