@@ -10,7 +10,52 @@ import {
 } from "@tanstack/react-query";
 import { formatInTimeZone } from "date-fns-tz";
 import * as api from "@/lib/api";
-import type { DailySummary, MessagesPage } from "@/types/api";
+import type {
+  DailySummary,
+  MessagesPage,
+  Meal,
+  ChatMessage,
+} from "@/types/api";
+
+export type MealActionState = {
+  meal?: Meal | null;
+  autoUntil?: number;
+  undoUntil?: number;
+  busy?: "delete" | "undo";
+  error?: string;
+};
+const mealActionsKey = ["meal-actions"] as const;
+const emptyActions: Record<string, MealActionState> = {};
+export function useMealActions() {
+  return useQuery({
+    queryKey: mealActionsKey,
+    queryFn: () => emptyActions,
+    initialData: emptyActions,
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  }).data;
+}
+function changeMealAction(
+  client: QueryClient,
+  id: string,
+  patch: Partial<MealActionState>,
+) {
+  client.setQueryData<Record<string, MealActionState>>(
+    mealActionsKey,
+    (old) => ({ ...old, [id]: { ...old?.[id], ...patch } }),
+  );
+}
+export function useManualMessages() {
+  return useQuery({
+    queryKey: ["manual-messages"],
+    queryFn: (): ChatMessage[] => [],
+    initialData: [] as ChatMessage[],
+    enabled: false,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  }).data;
+}
 
 export const queryKeys = {
   daily: (date?: string) => ["daily", date ?? "today"] as const,
@@ -40,6 +85,7 @@ export function applyDailySummaries(
 function useMealResult() {
   const client = useQueryClient();
   return async (summaries: DailySummary[]) => {
+    await client.cancelQueries({ queryKey: queryKeys.messages });
     for (const summary of summaries) {
       await client.cancelQueries({
         queryKey: queryKeys.daily(summary.date),
@@ -93,11 +139,29 @@ export const useMeal = (id: string) =>
     enabled: !!id,
   });
 export function useMessages() {
+  const client = useQueryClient();
   return useInfiniteQuery({
     queryKey: queryKeys.messages,
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) =>
-      api.getMessages({ before: pageParam }, { signal }),
+    queryFn: async ({ pageParam, signal }) => {
+      const page = await api.getMessages({ before: pageParam }, { signal });
+      if (!signal.aborted) {
+        const actions =
+          client.getQueryData<Record<string, MealActionState>>(mealActionsKey);
+        for (const message of page.messages)
+          for (const card of message.cards) {
+            if (card.kind !== "meal") continue;
+            const state = actions?.[card.meal_id];
+            if (
+              state?.meal &&
+              !state.busy &&
+              (!card.meal || card.meal.version >= state.meal.version)
+            )
+              changeMealAction(client, card.meal_id, { meal: card.meal });
+          }
+      }
+      return page;
+    },
     getNextPageParam: (page) =>
       page.has_more ? page.messages[0]?.id : undefined,
     select: (data) => ({
@@ -122,6 +186,23 @@ export function useSendChat() {
   return useMutation({
     mutationFn: (draft: api.ChatDraft) => api.sendChat(draft),
     onSuccess: async (result) => {
+      // Register only newly received turns. Replaying the same chat ID must not restart Undo.
+      const receivedKey = ["received-turn", result.assistant_message.id];
+      if (!client.getQueryData(receivedKey)) {
+        client.setQueryData(receivedKey, true);
+        for (const card of result.assistant_message.cards) {
+          if (
+            card.kind === "meal" &&
+            card.meal?.status === "active" &&
+            !client.getQueryData<Record<string, MealActionState>>(
+              mealActionsKey,
+            )?.[card.meal_id]
+          )
+            changeMealAction(client, card.meal_id, {
+              autoUntil: Date.now() + 10_000,
+            });
+        }
+      }
       await client.cancelQueries({ queryKey: queryKeys.messages });
       client.setQueryData<InfiniteData<MessagesPage>>(
         queryKeys.messages,
@@ -170,7 +251,35 @@ export function useSaveMeals() {
   return useMutation({
     mutationFn: (action: ReturnType<typeof api.createSaveAction>) =>
       api.saveMeals(action),
-    onSuccess: async (result) => {
+    onSuccess: async (result, action) => {
+      const manual = result.meals.filter(
+        (meal) =>
+          action.body.meals.some(
+            (input) => input.source_type === "manual" && !input.proposal_id,
+          ) && meal.source_type === "manual",
+      );
+      if (manual.length) {
+        client.setQueryData<ChatMessage[]>(["manual-messages"], (old = []) => {
+          const id = `manual:${action.idempotencyKey}`;
+          return [
+            ...old.filter((message) => message.id !== id),
+            {
+              id,
+              client_message_id: null,
+              role: "assistant",
+              text: "",
+              had_image: false,
+              status: "sent",
+              created_at: manual[0].created_at,
+              cards: manual.map((meal) => ({
+                kind: "meal" as const,
+                meal_id: meal.id,
+                meal,
+              })),
+            },
+          ];
+        });
+      }
       await update([result.daily_summary]);
       // The contract returns one summary for a multi-day save; only other days need refetching.
       for (const meal of result.meals) {
@@ -198,6 +307,7 @@ export function useSaveMeals() {
 }
 export function useUpdateMeal() {
   const update = useMealResult();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: ({
       id,
@@ -206,21 +316,91 @@ export function useUpdateMeal() {
       id: string;
       body: Parameters<typeof api.updateMeal>[1];
     }) => api.updateMeal(id, body),
-    onSuccess: (result) => update(result.daily_summaries),
+    onSuccess: (result) => {
+      changeMealAction(client, result.meal.id, { meal: result.meal });
+      client.setQueryData(queryKeys.meal(result.meal.id), result.meal);
+      return update(result.daily_summaries);
+    },
   });
 }
 export function useDeleteMeal() {
   const update = useMealResult();
+  const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.deleteMeal(id),
-    onSuccess: (result) => update([result.daily_summary]),
+    mutationFn: async (id: string) => {
+      const state =
+        client.getQueryData<Record<string, MealActionState>>(mealActionsKey)?.[
+          id
+        ];
+      if (state?.busy) throw new Error("This meal is already changing.");
+      if (state?.meal === null && state.undoUntil)
+        throw new Error("This meal is already deleted.");
+      changeMealAction(client, id, { busy: "delete", error: undefined });
+      try {
+        return await api.deleteMeal(id);
+      } catch (error) {
+        changeMealAction(client, id, {
+          busy: undefined,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Couldn’t delete. Try again.",
+        });
+        throw error;
+      }
+    },
+    onSuccess: async (result, id) => {
+      changeMealAction(client, id, {
+        meal: null,
+        autoUntil: undefined,
+        undoUntil: Date.parse(result.undo_until),
+        busy: undefined,
+        error: undefined,
+      });
+      client.removeQueries({ queryKey: queryKeys.meal(id), exact: true });
+      await update([result.daily_summary]);
+    },
   });
 }
 export function useUndoDelete() {
   const update = useMealResult();
+  const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.undoDelete(id),
-    onSuccess: (result) => update([result.daily_summary]),
+    mutationFn: async (id: string) => {
+      const state =
+        client.getQueryData<Record<string, MealActionState>>(mealActionsKey)?.[
+          id
+        ];
+      if (state?.busy) throw new Error("This meal is already changing.");
+      if (!state?.undoUntil || state.undoUntil <= Date.now())
+        throw new Error("The undo window has ended.");
+      changeMealAction(client, id, { busy: "undo", error: undefined });
+      try {
+        return await api.undoDelete(id);
+      } catch (error) {
+        changeMealAction(client, id, {
+          busy: undefined,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Couldn’t restore. Retry before the window ends.",
+          ...(error instanceof api.ApiClientError && error.code === "not_found"
+            ? { undoUntil: Date.now() }
+            : {}),
+        });
+        throw error;
+      }
+    },
+    onSuccess: async (result, id) => {
+      changeMealAction(client, id, {
+        meal: result.meal,
+        undoUntil: undefined,
+        busy: undefined,
+        error: undefined,
+      });
+      client.setQueryData(queryKeys.meal(id), result.meal);
+      await update([result.daily_summary]);
+    },
   });
 }
 export function usePatchPreferences() {

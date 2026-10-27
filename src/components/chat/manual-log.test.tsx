@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, vi } from "vitest";
 import * as api from "@/lib/api";
 import { ManualLog } from "./manual-log";
+import { createFixtures } from "@/mocks/fixtures";
 
 vi.mock("@/lib/api", async (original) => ({
   ...(await original<typeof api>()),
@@ -19,10 +20,15 @@ afterEach(cleanup);
 it("retains manual fields and the save idempotency key on retry", async () => {
   const client = new QueryClient();
   const close = vi.fn();
+  const meal = {
+    ...createFixtures().autoSaved,
+    name: "Yogurt",
+    source_type: "manual" as const,
+  };
   vi.mocked(api.saveMeals)
     .mockRejectedValueOnce(new Error("Offline"))
     .mockResolvedValueOnce({
-      meals: [],
+      meals: [meal],
       daily_summary: {
         date: "2026-10-26",
         timezone: "UTC",
@@ -58,5 +64,16 @@ it("retains manual fields and the save idempotency key on retry", async () => {
   expect(calls[1][0]).toBe(calls[0][0]);
   expect(calls[0][0].body.meals[0].source_type).toBe("manual");
   expect(calls[0][0].body.meals[0].items[0].macros.calories).toBe(160);
+  expect(client.getQueryData(["manual-messages"])).toMatchObject([
+    {
+      cards: [
+        {
+          kind: "meal",
+          meal_id: meal.id,
+          meal: { name: "Yogurt", source_type: "manual" },
+        },
+      ],
+    },
+  ]);
   client.clear();
 });

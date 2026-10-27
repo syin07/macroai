@@ -261,6 +261,17 @@ export function createMockApi(
               ? { kind: "meal", meal_id: meal.id, meal }
               : card,
           );
+      } else if (input.source_type === "manual") {
+        messages.push({
+          id: crypto.randomUUID(),
+          client_message_id: null,
+          role: "assistant",
+          text: "",
+          cards: [{ kind: "meal", meal_id: meal.id, meal }],
+          had_image: false,
+          status: "sent",
+          created_at: now().toISOString(),
+        });
       }
       return meal;
     });

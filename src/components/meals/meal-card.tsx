@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Check, ChevronDown, ExternalLink } from "lucide-react";
 import type {
   Macros,
@@ -47,6 +47,7 @@ export function MealCard({
   onDiscard,
   onClarify,
   onEditItem,
+  actions,
 }: {
   card: MealCardData;
   timezone?: string;
@@ -58,6 +59,7 @@ export function MealCard({
   onDiscard?: () => void;
   onClarify?: () => void;
   onEditItem?: (index: number) => void;
+  actions?: ReactNode;
 }) {
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
@@ -274,16 +276,19 @@ export function MealCard({
           </div>
         </div>
       )}
-      {!unsaved && onEdit && (
-        <div className="border-t border-[var(--app-line)] px-4 py-1">
-          <button
-            type="button"
-            className="chat-text-button"
-            disabled={busy || locked}
-            onClick={onEdit}
-          >
-            Edit meal
-          </button>
+      {!unsaved && card.kind === "meal" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--app-line)] px-4 py-1">
+          {onEdit && (
+            <button
+              type="button"
+              className="chat-text-button"
+              disabled={busy || locked}
+              onClick={onEdit}
+            >
+              Edit meal
+            </button>
+          )}
+          {actions}
         </div>
       )}
     </section>
