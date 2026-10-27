@@ -1,0 +1,6 @@
+# Meal photos stay out of git; share them on the team drive instead.
+cases/**/photo.*
+
+# Run output and USDA response cache.
+results/
+.cache/
