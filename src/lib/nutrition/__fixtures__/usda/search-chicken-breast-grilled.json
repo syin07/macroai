@@ -1,0 +1,920 @@
+{
+  "totalHits": 1083,
+  "currentPage": 1,
+  "totalPages": 44,
+  "foods": [
+    {
+      "fdcId": 2705969,
+      "description": "Chicken breast, grilled with sauce, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 21.15
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 9.15
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.34
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 202
+        }
+      ]
+    },
+    {
+      "fdcId": 2705970,
+      "description": "Chicken breast, grilled with sauce, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 24.33
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 4.93
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.34
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 178
+        }
+      ]
+    },
+    {
+      "fdcId": 2705967,
+      "description": "Chicken breast, grilled without sauce, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 25.72
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 10.62
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 206
+        }
+      ]
+    },
+    {
+      "fdcId": 2705968,
+      "description": "Chicken breast, grilled without sauce, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 29.62
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 5.45
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 176
+        }
+      ]
+    },
+    {
+      "fdcId": 2706090,
+      "description": "Chicken fillet, grilled",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken patties, nuggets and tenders",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 22.31
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 5.81
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 2.36
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 151
+        }
+      ]
+    },
+    {
+      "fdcId": 171534,
+      "description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, grilled",
+      "dataType": "SR Legacy",
+      "foodCategory": "Poultry Products",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 30.5
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 631
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 3.17
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 151
+        }
+      ]
+    },
+    {
+      "fdcId": 2706063,
+      "description": "Chicken wing, grilled with sauce",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 19.03
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 15.49
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.28
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 250
+        }
+      ]
+    },
+    {
+      "fdcId": 2706062,
+      "description": "Chicken wing, grilled without sauce",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 23.13
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 18.39
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 265
+        }
+      ]
+    },
+    {
+      "fdcId": 171536,
+      "description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, with added solution, cooked, grilled",
+      "dataType": "SR Legacy",
+      "foodCategory": "Poultry Products",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 29.5
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 621
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 3.39
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 148
+        }
+      ]
+    },
+    {
+      "fdcId": 170724,
+      "description": "WENDY'S, Ultimate Chicken Grill Sandwich",
+      "dataType": "SR Legacy",
+      "foodCategory": "Fast Foods",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 14.7
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 751
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 5
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 18.9
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 179
+        }
+      ]
+    },
+    {
+      "fdcId": 2759004,
+      "description": "Lunchmeat, chicken breast, sliced",
+      "dataType": "Foundation",
+      "foodCategory": "Sausages and Luncheon Meats",
+      "foodNutrients": []
+    },
+    {
+      "fdcId": 2706012,
+      "description": "Chicken drumstick, grilled with sauce, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 18.68
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 10.15
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.28
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 200
+        }
+      ]
+    },
+    {
+      "fdcId": 2706013,
+      "description": "Chicken drumstick, grilled with sauce, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 19.39
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 6.62
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.28
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 172
+        }
+      ]
+    },
+    {
+      "fdcId": 2707014,
+      "description": "Chicken fillet sandwich, grilled, on wheat bun",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken fillet sandwiches",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 22.46
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 4.87
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 17.84
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 210
+        }
+      ]
+    },
+    {
+      "fdcId": 2707012,
+      "description": "Chicken fillet sandwich, grilled, on white bun",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken fillet sandwiches",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 21.82
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 4.84
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 19.69
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 216
+        }
+      ]
+    },
+    {
+      "fdcId": 2706041,
+      "description": "Chicken thigh, grilled with sauce, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 18.61
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 13.77
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.28
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 233
+        }
+      ]
+    },
+    {
+      "fdcId": 2706042,
+      "description": "Chicken thigh, grilled with sauce, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 19.8
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 8.56
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 7.28
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 191
+        }
+      ]
+    },
+    {
+      "fdcId": 173312,
+      "description": "McDONALD'S, Bacon Ranch Salad with Grilled Chicken",
+      "dataType": "SR Legacy",
+      "foodCategory": "Fast Foods",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 10.3
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 339
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 3.14
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 3.64
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 81
+        }
+      ]
+    },
+    {
+      "fdcId": 2705964,
+      "description": "Chicken breast, rotisserie, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 28.04
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 3.57
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 144
+        }
+      ]
+    },
+    {
+      "fdcId": 171515,
+      "description": "Chicken breast tenders, breaded, uncooked",
+      "dataType": "SR Legacy",
+      "foodCategory": "Poultry Products",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 14.7
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 15.8
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 15
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 263
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 1100
+        }
+      ]
+    },
+    {
+      "fdcId": 174608,
+      "description": "Chicken breast, roll, oven-roasted",
+      "dataType": "SR Legacy",
+      "foodCategory": "Sausages and Luncheon Meats",
+      "foodNutrients": [
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 7.65
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 1.79
+        },
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 14.6
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 134
+        },
+        {
+          "nutrientId": 1062,
+          "nutrientName": "Energy",
+          "nutrientNumber": "268",
+          "unitName": "kJ",
+          "value": 562
+        }
+      ]
+    },
+    {
+      "fdcId": 2705963,
+      "description": "Chicken breast, rotisserie, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 26.37
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 7.67
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0.09
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 175
+        }
+      ]
+    },
+    {
+      "fdcId": 2705971,
+      "description": "Chicken breast, sauteed, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 25.72
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 10.62
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 206
+        }
+      ]
+    },
+    {
+      "fdcId": 2705972,
+      "description": "Chicken breast, sauteed, skin not eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 29.62
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 5.45
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 176
+        }
+      ]
+    },
+    {
+      "fdcId": 2705965,
+      "description": "Chicken breast, stewed, skin eaten",
+      "dataType": "Survey (FNDDS)",
+      "foodCategory": "Chicken, whole pieces",
+      "foodNutrients": [
+        {
+          "nutrientId": 1003,
+          "nutrientName": "Protein",
+          "nutrientNumber": "203",
+          "unitName": "G",
+          "value": 24.7
+        },
+        {
+          "nutrientId": 1004,
+          "nutrientName": "Total lipid (fat)",
+          "nutrientNumber": "204",
+          "unitName": "G",
+          "value": 8.28
+        },
+        {
+          "nutrientId": 1005,
+          "nutrientName": "Carbohydrate, by difference",
+          "nutrientNumber": "205",
+          "unitName": "G",
+          "value": 0
+        },
+        {
+          "nutrientId": 1008,
+          "nutrientName": "Energy",
+          "nutrientNumber": "208",
+          "unitName": "KCAL",
+          "value": 181
+        }
+      ]
+    }
+  ]
+}

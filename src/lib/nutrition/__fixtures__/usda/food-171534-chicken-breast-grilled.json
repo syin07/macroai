@@ -1,0 +1,98 @@
+{
+  "fdcId": 171534,
+  "description": "Chicken, broiler or fryers, breast, skinless, boneless, meat only, cooked, grilled",
+  "dataType": "SR Legacy",
+  "foodCategory": {
+    "id": 5,
+    "code": "0500",
+    "description": "Poultry Products"
+  },
+  "foodPortions": [
+    {
+      "id": 88942,
+      "amount": 3,
+      "gramWeight": 85,
+      "modifier": "oz",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 1
+    },
+    {
+      "id": 88943,
+      "amount": 1,
+      "gramWeight": 196,
+      "modifier": "piece",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 2
+    }
+  ],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 1619276,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "kcal"
+      },
+      "amount": 151
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1619198,
+      "nutrient": {
+        "id": 1062,
+        "number": "268",
+        "name": "Energy",
+        "rank": 400,
+        "unitName": "kJ"
+      },
+      "amount": 631
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1619182,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 600,
+        "unitName": "g"
+      },
+      "amount": 30.54
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1619264,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 800,
+        "unitName": "g"
+      },
+      "amount": 3.17
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1619265,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 1110,
+        "unitName": "g"
+      },
+      "amount": 0
+    }
+  ]
+}

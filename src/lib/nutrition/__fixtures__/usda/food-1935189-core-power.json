@@ -1,0 +1,61 @@
+{
+  "fdcId": 1935189,
+  "description": "CORE POWER, HIGH PROTEIN MILK SHAKE, BANANA, BANANA",
+  "dataType": "Branded",
+  "brandOwner": "Fair Oaks Farms Brands, Inc.",
+  "brandName": "CORE POWER",
+  "servingSize": 340,
+  "servingSizeUnit": "ml",
+  "householdServingFullText": "11.5 OZA",
+  "foodPortions": [],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 23496157,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 1110,
+        "unitName": "g"
+      },
+      "amount": 7.65
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 23496158,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "kcal"
+      },
+      "amount": 71
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 23496155,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 600,
+        "unitName": "g"
+      },
+      "amount": 7.65
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 23496156,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 800,
+        "unitName": "g"
+      },
+      "amount": 1.03
+    }
+  ]
+}

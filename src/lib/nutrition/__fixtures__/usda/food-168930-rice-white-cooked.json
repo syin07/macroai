@@ -1,0 +1,86 @@
+{
+  "fdcId": 168930,
+  "description": "Rice, white, medium-grain, cooked, unenriched",
+  "dataType": "SR Legacy",
+  "foodCategory": {
+    "id": 20,
+    "code": "2000",
+    "description": "Cereal Grains and Pasta"
+  },
+  "foodPortions": [
+    {
+      "id": 84018,
+      "amount": 1,
+      "gramWeight": 186,
+      "modifier": "cup",
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      },
+      "sequenceNumber": 1
+    }
+  ],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 1399975,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "kcal"
+      },
+      "amount": 130
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1399967,
+      "nutrient": {
+        "id": 1062,
+        "number": "268",
+        "name": "Energy",
+        "rank": 400,
+        "unitName": "kJ"
+      },
+      "amount": 544
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1399999,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 600,
+        "unitName": "g"
+      },
+      "amount": 2.38
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1399973,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 800,
+        "unitName": "g"
+      },
+      "amount": 0.21
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 1399974,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 1110,
+        "unitName": "g"
+      },
+      "amount": 28.59
+    }
+  ]
+}

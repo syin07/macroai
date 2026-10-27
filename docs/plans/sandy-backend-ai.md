@@ -85,12 +85,12 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B5 — Nutrition library
 
-- [ ] `src/lib/nutrition/units.ts`: a default-grams table for informal units (cup by food type, tbsp, tsp, slice, scoop, handful, bowl, piece/egg/banana etc.). Fall back to USDA `foodPortions` when available.
-- [ ] `src/lib/nutrition/usda.ts`: `searchFoods(query)` and `getFood(fdcId)`, normalized to `basis_per_100g` (energy 1008 / 2047 / 2048 → kcal, protein 1003, carbs 1005, fat 1004). Prefer the Foundation and SR Legacy data types for generic foods, and Branded when a brand is named.
-- [ ] `src/lib/nutrition/match.ts`: rank candidates by name similarity, preparation match (raw vs cooked matters a lot), and data type. Reject below a threshold, and never substitute an unrelated food (PRD FR-04).
+- [x] `src/lib/nutrition/units.ts`: a default-grams table for informal units (cup by food type, tbsp, tsp, slice, scoop, handful, bowl, piece/egg/banana etc.). Fall back to USDA `foodPortions` when available.
+- [x] `src/lib/nutrition/usda.ts`: `searchFoods(query)` and `getFood(fdcId)`, normalized to `basis_per_100g` (energy 1008 / 2047 / 2048 → kcal, protein 1003, carbs 1005, fat 1004). Prefer the Foundation and SR Legacy data types for generic foods, and Branded when a brand is named.
+- [x] `src/lib/nutrition/match.ts`: rank candidates by name similarity, preparation match (raw vs cooked matters a lot), and data type. Reject below a threshold, and never substitute an unrelated food (PRD FR-04).
 - [ ] `src/lib/nutrition/cache.ts`: read and write `nutrition_cache` by normalized query key before calling USDA.
-- [ ] `src/lib/nutrition/calc.ts` (pure): `itemMacros(basis, grams)`, `sumMacros(items)`, `remaining(consumed, targets)`, `round1()` for display only.
-- [ ] Unit tests (Vitest): doubling grams doubles macros; meal total = sum of items; rounding happens only at display; unit conversions.
+- [x] `src/lib/nutrition/calc.ts` (pure): `itemMacros(basis, grams)`, `sumMacros(items)`, `remaining(consumed, targets)`, `round1()` for display only.
+- [x] Unit tests (Vitest): doubling grams doubles macros; meal total = sum of items; rounding happens only at display; unit conversions.
 - [ ] Decide **USDA API vs. local copy**: if the API's latency or the 1,000/hour limit hurts in the bake-off, import the Foundation + SR Legacy CSVs into a `usda_foods` table instead. Record the choice in PRD §23.
 
 **Done when:** `matchAndCalculate(extraction)` turns the extraction output into `MealItem[]` with sources, and the tests pass.
@@ -156,7 +156,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B12 — Goals, preferences, onboarding
 
-- [ ] `src/lib/nutrition/goals.ts` (pure): Mifflin–St Jeor BMR, activity multipliers (1.2 / 1.375 / 1.55 / 1.725 / 1.9), goal adjustment (−500 / 0 / +300 kcal), protein 1.8 g/kg (bodyweight), fat 25% of kcal, carbs = remainder. Unit-test against hand calculations.
+- [x] `src/lib/nutrition/goals.ts` (pure): Mifflin–St Jeor BMR, activity multipliers (1.2 / 1.375 / 1.55 / 1.725 / 1.9), goal adjustment (−500 / 0 / +300 kcal), protein 1.8 g/kg (bodyweight), fat 25% of kcal, carbs = remainder. Unit-test against hand calculations.
 - [ ] `GET/PUT /api/goals` (a new `effective_from` row on change, so history keeps old targets), `POST /api/goals/suggest`, `GET/PATCH /api/preferences`, `POST /api/onboarding/complete`.
 - [ ] **(H3)** Tell Ken.
 
