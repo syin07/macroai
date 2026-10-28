@@ -168,6 +168,8 @@ A11 implementation is on `ken/a11-history`, pending review/merge. It groups pagi
 
 **Done when (after H3/H8):** every setting persists across reload and across devices.
 
+A12 implementation is on `ken/a12-settings`, pending review/merge. Includes server-backed theme/logging/time-zone preferences with explicit Save and retained drafts, validated manual goals, a reusable calculation/review step with cm/ft-in and kg/lb inputs, memory edits/deletion confirmation, all three exports with temporary URL cleanup, and account actions. Suggestions do not save targets automatically. Sign-out now calls Sandy’s real helper outside development mocks; successful sign-out/deletion cancels queries, clears private caches, and replaces the document with sign-in. Account deletion requires exact `DELETE`; tests cover failure retention and duplicate-submit protection. `/auth/settings-preview` is development-only. Other A4 auth operations remain unwired, so real approved-account reload/cross-device and device checks remain open; keep A12’s acceptance box unchecked until merge and integration verification.
+
 ## A13 — Onboarding
 
 - [ ] Shown after the first sign-in when `me.onboarding_complete` is false. 4 short steps with a progress dots indicator, and "Skip" on optional steps:
@@ -177,9 +179,13 @@ A11 implementation is on `ken/a11-history`, pending review/merge. It groups pagi
   4. Save mode choice with a one-line explanation of each.
 - [ ] `completeOnboarding` → `/chat`.
 
+A13 implementation is on `ken/a13-onboarding`, pending review/merge. Four steps include progress dots, detected time zone, the shared metric/imperial goal calculator, editable suggested or manual targets, optional skips, and explained save modes. First-run routing checks `me.onboarding_complete` within authenticated app routes and sends completed accounts away from onboarding. Failed loads offer retry; failed saves retain choices, duplicate finish requests are blocked, and completion runs only after the save mode succeeds. Completion updates the account query before navigating to Chat. Body-stat drafts stay in component memory for Back and disappear on unmount; no browser storage is used. `/auth/onboarding-preview` is development-only with mocks. A13 acceptance remains open until merge and real approved-account verification; A4 production sign-in wiring is still pending.
+
 ## A14 — Insights tab (MVP-light)
 
 - [ ] For the MVP: the last 7 recorded days as a simple list (date, kcal, protein) via `getDaily` per day, with a note that charts are coming. Full charts (Recharts) are P1.
+
+A14 implementation is on `ken/a14-insights`, pending review/merge. Insights discovers the newest seven recorded local dates through paginated saved meals, then loads each full day's authoritative calories and protein through `getDaily`; it never sums a partial meal page or substitutes zero for missing days. Dates follow account preferences, future dates are excluded, and the meal-query cache includes the time zone because the inclusive through-today filter depends on it. Includes empty/fewer-than-seven states, retained rows after failures, independent retry for each total and for day discovery, and the planned charts-coming note. Shared daily-cache updates appear immediately. `/auth/insights-preview` is development-only with mock empty/small-log/failure/theme controls. Acceptance stays open until merge and live approved-account verification; physical-device and production auth integration remain A15/A4 work.
 
 ## A15 — Polish and device testing
 

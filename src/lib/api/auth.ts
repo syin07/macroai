@@ -41,7 +41,7 @@ export function authPreviewEnabled() {
 }
 async function adapter(): Promise<AuthAdapter> {
   if (authPreviewEnabled()) return (await import("@/mocks/auth")).mockAuth;
-  // H2 has not landed. Never use a simulated session as production authentication.
+  // Remaining A4 operations still need real-helper wiring. Never simulate production authentication.
   throw new AuthUiError(
     "unavailable",
     "Account access is temporarily unavailable. Please try again later.",
@@ -64,7 +64,8 @@ export const authClient: AuthAdapter = {
     return (await adapter()).updatePassword(password);
   },
   async signOut() {
-    return (await adapter()).signOut();
+    if (authPreviewEnabled()) return (await adapter()).signOut();
+    return (await import("@/lib/auth/client")).signOut();
   },
   async getSession() {
     return (await adapter()).getSession();
