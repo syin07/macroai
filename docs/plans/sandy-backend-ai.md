@@ -139,7 +139,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B10 — Corrections and dates
 
-- [ ] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday". *`buildContext({ recentMeals })` and `loadRecentMeals()` are done; still to do: pass them in `POST /api/ai/chat`.*
+- [x] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday".
 - [x] `update_meal` tool: if more than one meal plausibly matches, return a clarification instead of guessing (PRD 12.5).
 - [x] Use the meal `version` in the tool to avoid overwriting newer user edits (PRD 12.14).
 - [x] Eval cases for 8 correction phrasings and 6 date phrasings (yesterday, last night, this morning, two hours ago, last Tuesday, at 8 PM). Add them to `tests/eval/`.

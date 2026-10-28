@@ -6,7 +6,7 @@ import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { analyzeMeal } from "@/lib/ai/analyze";
 import { createAiCapGuard } from "@/lib/ai/cap";
 import { runChatTurn } from "@/lib/ai/chat";
-import { buildContext, HISTORY_MESSAGES, loadContextMemories } from "@/lib/ai/context";
+import { buildContext, HISTORY_MESSAGES, loadContextMemories, loadRecentMeals } from "@/lib/ai/context";
 import { createMealStore } from "@/lib/ai/meal-store";
 import { createMemoryStore } from "@/lib/ai/memory-store";
 import type { ImageMediaType, MealImage } from "@/lib/ai/provider";
@@ -178,11 +178,12 @@ export async function POST(request: Request) {
     await checkCap();
 
     // Context from what's already saved (the current message isn't stored yet). Totals and memories
-    // are best-effort: without them the model is told to use its tools, or does without.
-    const [history, today, memories] = await Promise.all([
+    // and recent meals are best-effort: without them the model is told to use its tools, or does without.
+    const [history, today, memories, recentMeals] = await Promise.all([
       recentMessages(supabase, user.id, HISTORY_MESSAGES),
       meals.dailySummary().catch(() => null),
       loadContextMemories(supabase, user.id, userRow ? userRow.content : fields.text),
+      loadRecentMeals(meals),
     ]);
 
     // 4. The user message.
@@ -242,6 +243,7 @@ export async function POST(request: Request) {
       history,
       today,
       memories,
+      recentMeals,
       message: { text: messageText, hasImage: image !== undefined },
     });
 
