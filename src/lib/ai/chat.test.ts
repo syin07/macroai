@@ -48,7 +48,9 @@ function meals(): MealStore {
     updateMeal: vi.fn(),
     deleteMeal: vi.fn(),
     dailySummary: vi.fn(),
-    searchMeals: vi.fn(),
+    recentMeals: vi.fn(async () => []),
+    searchHistory: vi.fn(),
+    lastMatching: vi.fn(),
   };
 }
 

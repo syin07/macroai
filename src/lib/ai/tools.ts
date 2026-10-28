@@ -6,7 +6,6 @@ import type {
   Meal,
   MealCard,
   MealItem,
-  MealListItem,
   MealProposal,
   MealSourceType,
   Memory,
@@ -15,13 +14,16 @@ import type {
 } from "@/types/api";
 import { ApiErrorException } from "@/lib/api-error";
 import { getGoalsOn } from "@/lib/database/goals";
+import type { LastMealMatch, MealHistoryResult, SearchMealHistoryOptions } from "@/lib/database/history";
 import { localDate } from "@/lib/database/profile";
-import { resizeItem } from "@/lib/nutrition/calc";
+import { itemMacros, resizeItem } from "@/lib/nutrition/calc";
+import { matchFood } from "@/lib/nutrition/match";
 import type { NutritionLookup } from "@/lib/nutrition/usda";
 import { isoDate, isoDateTime, text, uuid } from "@/lib/validation/common";
 import { memorySchema } from "@/lib/validation/account";
 import type { SaveStatedMemoryResult } from "@/lib/memory/extract";
 import type { MealAnalysis } from "./analyze";
+import { inUserZone, parseTimePhrase } from "./dates";
 import type { MealImage, ToolCall, ToolDef, ToolResult } from "./provider";
 
 // The chat model's tools (PRD §5.7). Each one is a plain server function: the model supplies
@@ -34,6 +36,16 @@ import type { MealImage, ToolCall, ToolDef, ToolResult } from "./provider";
 
 // --- Dependencies ---------------------------------------------------------------------------------
 
+// The session's zone and clock, for anything that turns local dates into instants.
+export interface SessionClock {
+  timezone: string;
+  now: Date;
+}
+
+// How many of the newest meals the context shows and update_meal considers when the model doesn't name
+// one (plan B10).
+export const RECENT_MEALS = 5;
+
 // B7's meal functions, bound to the session user. See createMealStore() in ./meal-store.
 export interface MealStore {
   saveProposal(proposal: MealProposal, sourceType: MealSourceType): Promise<Meal>; // idempotent on proposal_id
@@ -42,7 +54,10 @@ export interface MealStore {
   updateMeal(mealId: string, patch: UpdateMealRequest): Promise<Meal>;
   deleteMeal(mealId: string): Promise<{ undo_until: string }>;
   dailySummary(date?: string): Promise<DailySummary>; // today in the user's zone when omitted
-  searchMeals(query: { from?: string; to?: string; q?: string; limit: number }): Promise<MealListItem[]>;
+  recentMeals(limit: number): Promise<Meal[]>; // active meals, newest consumed first, with items
+  // B11 (database/history.ts): searchMealHistory() and findLastMealMatching().
+  searchHistory(options: Omit<SearchMealHistoryOptions, "timezone">, session: SessionClock): Promise<MealHistoryResult>;
+  lastMatching(options: { q: string; before?: string }, session: SessionClock): Promise<LastMealMatch | null>;
 }
 
 // B13's memory functions, bound to the session user and this turn's message. See createMemoryStore()
@@ -141,9 +156,13 @@ function putMealCard(state: TurnState, meal: Meal, replacesProposalId?: string) 
 
 // --- Tool definitions -----------------------------------------------------------------------------
 
-// A failure the model should see and explain (bad target, nothing to change). Not logged.
+// A failure the model should see and explain (bad target, nothing to change). Not logged. `details`
+// go into the error result next to the message (e.g. the current meal after a version conflict).
 export class ToolInputError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "ToolInputError";
   }
@@ -279,76 +298,238 @@ const saveMeal = tool({
 const itemChangeSchema = z
   .strictObject({
     item_id: uuid.optional(),
-    food_name: text(200).optional().describe("Used to find the item when item_id isn't known, e.g. 'rice'."),
-    quantity: z.number().finite().positive().max(10_000).optional(),
+    food_name: text(200).optional().describe("Finds the item, e.g. 'cheese'."),
+    quantity: z.number().finite().positive().max(10_000).optional().describe("In the item's unit."),
     grams: z.number().finite().positive().max(10_000).optional(),
     remove: z.boolean().optional(),
+    replace_with: text(200).optional().describe("Swap to another food, e.g. 'skim milk'; keeps the amount."),
+    search_query: text(200).optional().describe("USDA wording for replace_with, e.g. 'milk, nonfat, fluid'."),
   })
   .refine((c) => c.item_id !== undefined || c.food_name !== undefined, { message: "Give item_id or food_name" })
-  .refine((c) => c.remove === true || c.quantity !== undefined || c.grams !== undefined, {
-    message: "Give quantity, grams, or remove: true",
+  .refine((c) => c.remove === true || c.quantity !== undefined || c.grams !== undefined || c.replace_with !== undefined, {
+    message: "Give quantity, grams, replace_with, or remove: true",
   });
 
-function findItem(items: MealItem[], change: z.output<typeof itemChangeSchema>): number {
-  if (change.item_id) {
-    const index = items.findIndex((item) => item.id === change.item_id);
-    if (index === -1) throw new ToolInputError("That item isn't in this meal.");
-    return index;
-  }
-  const needle = change.food_name!.toLowerCase();
-  const matches = items.flatMap((item, i) => (item.food_name.toLowerCase().includes(needle) ? [i] : []));
+type ItemChange = z.output<typeof itemChangeSchema>;
+
+// "eggs" should find "Egg, scrambled": compare lowercase words, singular.
+function singular(word: string): string {
+  if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
+  if (word.length > 4 && word.endsWith("oes")) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith("s") && !word.endsWith("ss")) return word.slice(0, -1);
+  return word;
+}
+
+const nameWords = (name: string) => name.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).map(singular);
+
+function matchesItem(item: Pick<MealItem, "id" | "food_name">, change: ItemChange): boolean {
+  if (change.item_id) return item.id === change.item_id;
+  const needle = change.food_name!.toLowerCase().trim();
+  if (item.food_name.toLowerCase().includes(needle)) return true;
+  const have = new Set(nameWords(item.food_name));
+  const want = nameWords(needle);
+  return want.length > 0 && want.every((word) => have.has(word));
+}
+
+function findItem(items: MealItem[], change: ItemChange): number {
+  const matches = items.flatMap((item, i) => (matchesItem(item, change) ? [i] : []));
+  if (change.item_id && matches.length === 0) throw new ToolInputError("That item isn't in this meal.");
   if (matches.length === 0) throw new ToolInputError(`No item matching "${change.food_name}" in this meal.`);
   if (matches.length > 1) throw new ToolInputError(`More than one item matches "${change.food_name}"; ask which one.`);
   return matches[0]!;
 }
 
+function resize(item: MealItem, change: { quantity?: number; grams?: number }): MealItem {
+  try {
+    return resizeItem(item, change);
+  } catch (error) {
+    if (error instanceof RangeError) throw new ToolInputError(`Can't resize ${item.food_name}.`);
+    throw error;
+  }
+}
+
+// A food swap ("actually that was skim milk"): the new food's USDA nutrition at the item's old amount.
+// Matched with B5's matcher, which rejects a weak match rather than substituting another food.
+async function replaceFood(item: MealItem, change: ItemChange, lookup: NutritionLookup): Promise<MealItem> {
+  const name = change.replace_with!;
+  const byWeight = item.grams !== null;
+  const result = await matchFood(
+    {
+      name,
+      quantity: byWeight ? item.grams! : item.quantity,
+      unit: byWeight ? "g" : item.unit,
+      preparation: null,
+      inferred: item.inferred,
+      confidence: "medium",
+      search_query: change.search_query ?? name,
+      brand: null,
+      notes: null,
+    },
+    lookup,
+  );
+  const basis = result.status === "matched" ? result.item.basis_per_100g : null;
+  const grams = item.grams ?? (result.status === "matched" ? result.item.grams : null);
+  if (result.status !== "matched" || !basis || grams === null) {
+    throw new ToolInputError(`Couldn't find nutrition data for "${name}", so nothing was changed. Ask the user for more detail.`);
+  }
+  return {
+    ...item,
+    food_name: name.charAt(0).toUpperCase() + name.slice(1),
+    grams,
+    basis_per_100g: basis,
+    macros: itemMacros(basis, grams),
+    nutrition_source: "usda",
+    source_reference: result.item.source_reference,
+    confidence: result.item.confidence,
+    assumptions: result.item.assumptions,
+  };
+}
+
+const updateMealSchema = z
+  .strictObject({
+    meal_id: uuid
+      .optional()
+      .describe("From recent meals or a card. Omit if unclear which meal: the tool finds the one with the item, or returns candidates."),
+    version: z.number().int().positive().optional().describe("The version shown with meal_id (required with it)."),
+    name: text(120).optional(),
+    time_phrase: text(100).optional().describe("The user's words for a time move, e.g. 'lunch yesterday'."),
+    consumed_at: isoDateTime.optional().describe("Exact ISO time with offset; only without time words."),
+    scale: z.number().finite().positive().max(10).optional().describe("Multiply all amounts, e.g. 0.5 for 'I only ate half'."),
+    item_changes: z.array(itemChangeSchema).max(20).optional(),
+  })
+  .refine((a) => a.meal_id === undefined || a.version !== undefined, {
+    message: "Give the version you saw with meal_id",
+    path: ["version"],
+  })
+  .refine(
+    (a) =>
+      a.name !== undefined ||
+      a.time_phrase !== undefined ||
+      a.consumed_at !== undefined ||
+      a.scale !== undefined ||
+      (a.item_changes?.length ?? 0) > 0,
+    { message: "Nothing to change" },
+  );
+
+type UpdateMealArgs = z.output<typeof updateMealSchema>;
+
+type UpdateTarget = { meal: Meal } | { candidates: Array<{ meal: Meal; matching_items: string[] }> };
+
+// PRD 12.5: with no meal_id, the target is the one recent meal that has every item the change names.
+// Several → candidates for the model to ask about; never a guess.
+async function findUpdateTarget(args: UpdateMealArgs, store: MealStore): Promise<UpdateTarget> {
+  if (args.meal_id) {
+    const meal = await store.getMeal(args.meal_id);
+    if (!meal || meal.status !== "active") throw new ToolInputError("No saved meal with that ID.");
+    return { meal };
+  }
+  const changes = args.item_changes ?? [];
+  const recent = (await store.recentMeals(RECENT_MEALS)).filter((meal) => meal.status === "active");
+  const fits = recent.flatMap((meal) => {
+    const hits = changes.map((change) => meal.items.filter((item) => matchesItem(item, change)));
+    if (!hits.every((list) => list.length > 0)) return [];
+    return [{ meal, matching_items: [...new Set(hits.flat().map((item) => item.food_name))] }];
+  });
+  if (fits.length === 1) return { meal: fits[0]!.meal };
+  if (fits.length === 0) {
+    throw new ToolInputError(
+      changes.length > 0 ? "None of the recent meals has that item. Ask the user which meal they mean." : "No recent meals to change.",
+    );
+  }
+  return { candidates: fits };
+}
+
+// PRD 12.14: the model's edit is based on the version it saw. If the user changed the meal since, nothing
+// is written; the model gets what's saved now and tells the user instead of overwriting their edit.
+function versionConflict(current: Meal | null, seen: number): ToolInputError {
+  if (!current || current.status !== "active") return new ToolInputError("That meal was deleted, so nothing was changed.");
+  return new ToolInputError(
+    `Nothing was changed: the meal was edited after version ${seen} and is now version ${current.version}. current_meal is what's saved now. Tell the user, and ask before changing it again.`,
+    { current_meal: mealSummary(current) },
+  );
+}
+
+const FUTURE_GRACE_MS = 2 * 60 * 60_000; // same grace as the date resolver's early logging
+
+function newConsumedAt(args: UpdateMealArgs, meal: Meal, ctx: ToolContext): string | undefined {
+  if (args.time_phrase) {
+    // The user's words, resolved in code (FR-09). A day without a time keeps the meal's time of day.
+    const parsed = parseTimePhrase(args.time_phrase, ctx.now, ctx.timezone, { clockFrom: new Date(meal.consumed_at) });
+    if (parsed) return inUserZone(parsed, ctx.timezone);
+    if (!args.consumed_at) throw new ToolInputError(`Couldn't tell when "${args.time_phrase}" is. Ask the user for the day and time.`);
+  }
+  if (args.consumed_at) {
+    if (Date.parse(args.consumed_at) > ctx.now.getTime() + FUTURE_GRACE_MS) throw new ToolInputError("A meal can't be moved into the future.");
+    return args.consumed_at;
+  }
+  return undefined;
+}
+
+async function changedItems(meal: Meal, args: UpdateMealArgs, ctx: ToolContext): Promise<MealItem[]> {
+  let items: MealItem[] = meal.items.map((item) => ({ ...item }));
+  if (args.scale !== undefined) {
+    const factor = args.scale;
+    items = items.map((item) => ({ ...resize(item, { quantity: item.quantity * factor }), edited_by_user: true }));
+  }
+  const removed = new Set<number>();
+  for (const change of args.item_changes ?? []) {
+    const index = findItem(items, change);
+    if (change.remove) {
+      removed.add(index);
+      continue;
+    }
+    let next = items[index]!;
+    if (change.replace_with) next = await replaceFood(next, change, ctx.lookup);
+    if (change.quantity !== undefined || change.grams !== undefined) next = resize(next, change);
+    items[index] = { ...next, edited_by_user: true };
+  }
+  items = items.filter((_, i) => !removed.has(i));
+  if (items.length === 0) throw new ToolInputError("That would remove every item; delete the meal instead.");
+  return items;
+}
+
 const updateMeal = tool({
   name: "update_meal",
   description:
-    "Correct a saved meal: rename it, move its time, change an item's amount, or remove an item. Nutrition is recalculated by the server. Identify the meal by meal_id from cards or today's meals; if several could match, ask first.",
-  schema: z
-    .strictObject({
-      meal_id: uuid,
-      version: z.number().int().positive().optional().describe("The meal version you last saw, if known."),
-      name: text(120).optional(),
-      consumed_at: isoDateTime.optional().describe("ISO 8601 with UTC offset."),
-      item_changes: z.array(itemChangeSchema).max(20).optional(),
-    })
-    .refine((a) => a.name !== undefined || a.consumed_at !== undefined || (a.item_changes?.length ?? 0) > 0, {
-      message: "Nothing to change",
-    }),
+    "Correct a saved meal: rename, move its time, scale, or change, swap, or remove items; the server recalculates nutrition. If the meal changed since the version you pass, nothing is written and the current meal is returned. Never guess the meal: omit meal_id to let the tool check, and ask when it returns needs_clarification.",
+  schema: updateMealSchema,
   needs: "meals",
   async run(args, ctx, state) {
     const store = requireMeals(ctx);
-    const meal = await store.getMeal(args.meal_id);
-    if (!meal || meal.status !== "active") throw new ToolInputError("No saved meal with that ID.");
-
-    const patch: UpdateMealRequest = { version: args.version ?? meal.version };
-    if (args.name !== undefined) patch.name = args.name;
-    if (args.consumed_at !== undefined) patch.consumed_at = args.consumed_at;
-
-    if (args.item_changes?.length) {
-      let items: MealItem[] = meal.items.map((item) => ({ ...item }));
-      const removed = new Set<number>();
-      for (const change of args.item_changes) {
-        const index = findItem(items, change);
-        if (change.remove) {
-          removed.add(index);
-          continue;
-        }
-        try {
-          items[index] = { ...resizeItem(items[index]!, change), edited_by_user: true };
-        } catch (error) {
-          if (error instanceof RangeError) throw new ToolInputError(`Can't resize ${items[index]!.food_name}.`);
-          throw error;
-        }
-      }
-      items = items.filter((_, i) => !removed.has(i));
-      if (items.length === 0) throw new ToolInputError("That would remove every item; delete the meal instead.");
-      patch.items = items;
+    const target = await findUpdateTarget(args, store);
+    if ("candidates" in target) {
+      return {
+        status: "needs_clarification",
+        note: "Nothing was changed: more than one recent meal fits. Ask the user which one (by name and time), then call update_meal with its meal_id and version.",
+        candidates: target.candidates.map(({ meal, matching_items }) => ({
+          meal_id: meal.id,
+          version: meal.version,
+          name: meal.name,
+          consumed_at: inUserZone(new Date(meal.consumed_at), ctx.timezone),
+          matching_items,
+        })),
+      };
     }
 
-    const updated = await store.updateMeal(meal.id, patch);
+    const { meal } = target;
+    if (args.version !== undefined && args.version !== meal.version) throw versionConflict(meal, args.version);
+
+    const patch: UpdateMealRequest = { version: meal.version };
+    if (args.name !== undefined) patch.name = args.name;
+    const consumedAt = newConsumedAt(args, meal, ctx);
+    if (consumedAt !== undefined) patch.consumed_at = consumedAt;
+    if (args.scale !== undefined || (args.item_changes?.length ?? 0) > 0) patch.items = await changedItems(meal, args, ctx);
+
+    let updated: Meal;
+    try {
+      updated = await store.updateMeal(meal.id, patch);
+    } catch (error) {
+      // Edited between our read and the write: the SQL function's row-locked version check caught it.
+      if (error instanceof ApiErrorException && error.code === "version_conflict") {
+        throw versionConflict(await store.getMeal(meal.id), meal.version);
+      }
+      throw error;
+    }
     putMealCard(state, updated);
     return { status: "updated", ...mealSummary(updated) };
   },
@@ -391,23 +572,79 @@ const getDailyTotals = tool({
   },
 });
 
+// Per-day lists the model gets in full only for short ranges; long ranges get the counts.
+const MAX_LISTED_DAYS = 31;
+
+function historyAggregate(agg: NonNullable<MealHistoryResult["aggregate"]>) {
+  return {
+    from: agg.from,
+    to: agg.to,
+    days_in_range: agg.days_in_range,
+    days_with_records: agg.days_with_records,
+    missing_dates: agg.missing_dates.slice(0, MAX_LISTED_DAYS),
+    ...(agg.missing_dates.length > MAX_LISTED_DAYS ? { missing_dates_truncated: true } : {}),
+    includes_today: agg.includes_today,
+    sum: roundMacros(agg.sum),
+    // null, never 0, when no day in the range has records (PRD §13).
+    average_per_recorded_day: agg.average_per_recorded_day && roundMacros(agg.average_per_recorded_day),
+    ...(agg.days.length <= MAX_LISTED_DAYS
+      ? { days: agg.days.map((d) => ({ date: d.date, meals: d.meal_count, totals: roundMacros(d.totals) })) }
+      : {}),
+    ...(agg.days_with_records === 0 ? { note: "No records in this range. Say so; don't report a total of 0." } : {}),
+  };
+}
+
 const searchMealHistory = tool({
   name: "search_meal_history",
   description:
-    "Search saved meals by date range (YYYY-MM-DD, user's time zone) and/or food name, newest first. Days without records are unknown, not zero.",
+    "Saved meals by local date range (YYYY-MM-DD, inclusive) and/or food name, newest first. Days without records are unknown, not zero.",
   schema: z
     .strictObject({
       from: isoDate.optional(),
       to: isoDate.optional(),
-      query: text(100).optional(),
+      query: text(100).optional().describe("Food or meal name."),
       limit: z.number().int().min(1).max(30).default(10),
+      aggregate: z.boolean().optional().describe("Sum and average per recorded day over from..to, all meals in range. Needs from."),
+      latest_match: z.boolean().optional().describe("'When did I last have X': the newest meal matching query, up to to."),
     })
-    .refine((a) => !a.from || !a.to || a.from <= a.to, { message: "from must not be after to", path: ["from"] }),
+    .refine((a) => !a.from || !a.to || a.from <= a.to, { message: "from must not be after to", path: ["from"] })
+    .refine((a) => !a.aggregate || a.from, { message: "aggregate needs from", path: ["from"] })
+    .refine((a) => !a.latest_match || a.query, { message: "latest_match needs query", path: ["query"] })
+    .refine((a) => !(a.latest_match && a.aggregate), { message: "Use aggregate or latest_match, not both" }),
   needs: "meals",
   async run(args, ctx) {
-    const meals = await requireMeals(ctx).searchMeals({ from: args.from, to: args.to, q: args.query, limit: args.limit });
+    // userId is bound into the store from the session; the zone and clock are the session's too.
+    const store = requireMeals(ctx);
+    const session: SessionClock = { timezone: ctx.timezone, now: ctx.now };
+
+    if (args.latest_match) {
+      const hit = await store.lastMatching({ q: args.query!, before: args.to }, session);
+      if (!hit) return { latest_match: null, note: `No saved meal matches "${args.query}".` };
+      return {
+        latest_match: {
+          local_date: hit.local_date,
+          days_ago: hit.days_ago,
+          matched_items: hit.matched_items,
+          meal: mealSummary(hit.meal),
+        },
+      };
+    }
+
+    const result = await store.searchHistory(
+      { from: args.from, to: args.to, q: args.query, limit: args.limit, aggregate: args.aggregate },
+      session,
+    );
     return {
-      meals: meals.map((m) => ({ meal_id: m.id, name: m.name, consumed_at: m.consumed_at, totals: roundMacros(m.totals) })),
+      today: result.today,
+      meals: result.meals.map((m) => ({
+        meal_id: m.id,
+        name: m.name,
+        local_date: m.local_date,
+        consumed_at: inUserZone(new Date(m.consumed_at), ctx.timezone),
+        totals: roundMacros(m.totals),
+      })),
+      has_more: result.has_more,
+      ...(result.aggregate ? { aggregate: historyAggregate(result.aggregate) } : {}),
     };
   },
 });
@@ -482,9 +719,26 @@ export type ToolName = (typeof TOOLS)[number]["name"];
 
 const BY_NAME = new Map<string, ToolSpec<z.ZodType>>(TOOLS.map((t) => [t.name, t as unknown as ToolSpec<z.ZodType>]));
 
+// Zod spells formats out as long regexes (a uuid is ~200 characters, a date-time ~400) and gives every
+// int a MAX_SAFE_INTEGER bound. The model only needs `format`; Zod still checks the full rule on input.
+// Dropping them keeps the cached prefix inside the context budget (context.ts).
+function compactSchema(node: unknown): void {
+  if (Array.isArray(node)) {
+    node.forEach(compactSchema);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  const obj = node as Record<string, unknown>;
+  if (typeof obj.format === "string") delete obj.pattern;
+  if (obj.maximum === Number.MAX_SAFE_INTEGER) delete obj.maximum;
+  if (obj.minimum === Number.MIN_SAFE_INTEGER) delete obj.minimum;
+  Object.values(obj).forEach(compactSchema);
+}
+
 function toolJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const json = z.toJSONSchema(schema, { io: "input" }) as Record<string, unknown>;
   delete json.$schema;
+  compactSchema(json);
   return json;
 }
 
@@ -514,9 +768,9 @@ function zodMessage(error: z.ZodError): string {
 // Runs one model tool call. Never throws for the model's mistakes or a tool failing: those come back
 // as an error result the model can explain. Only the session user's context is used.
 export async function runTool(call: ToolCall, ctx: ToolContext, state: TurnState): Promise<ToolResult> {
-  const fail = (message: string): ToolResult => {
+  const fail = (message: string, details?: Record<string, unknown>): ToolResult => {
     state.tools.push({ name: call.name, ok: false });
-    return { callId: call.id, name: call.name, output: { error: message }, isError: true };
+    return { callId: call.id, name: call.name, output: { error: message, ...details }, isError: true };
   };
 
   const spec = BY_NAME.get(call.name);
@@ -530,7 +784,9 @@ export async function runTool(call: ToolCall, ctx: ToolContext, state: TurnState
     state.tools.push({ name: call.name, ok: true });
     return { callId: call.id, name: call.name, output };
   } catch (error) {
-    if (error instanceof ToolInputError) return fail(error.message);
+    if (error instanceof ToolInputError) return fail(error.message, error.details);
+    // A data-layer option check the tool schema didn't catch (e.g. a history range over 366 days).
+    if (error instanceof z.ZodError) return fail(`Invalid arguments: ${zodMessage(error)}`);
     if (error instanceof ApiErrorException) {
       // e.g. version_conflict, not_found, ai_unavailable: the safe user-facing message, plus any
       // field messages ("That amount is too large.").

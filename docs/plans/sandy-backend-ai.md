@@ -139,17 +139,17 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B10 — Corrections and dates
 
-- [ ] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday".
-- [ ] `update_meal` tool: if more than one meal plausibly matches, return a clarification instead of guessing (PRD 12.5).
-- [ ] Use the meal `version` in the tool to avoid overwriting newer user edits (PRD 12.14).
-- [ ] Eval cases for 8 correction phrasings and 6 date phrasings (yesterday, last night, this morning, two hours ago, last Tuesday, at 8 PM). Add them to `tests/eval/`.
+- [ ] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday". *`buildContext({ recentMeals })` and `loadRecentMeals()` are done; still to do: pass them in `POST /api/ai/chat`.*
+- [x] `update_meal` tool: if more than one meal plausibly matches, return a clarification instead of guessing (PRD 12.5).
+- [x] Use the meal `version` in the tool to avoid overwriting newer user edits (PRD 12.14).
+- [x] Eval cases for 8 correction phrasings and 6 date phrasings (yesterday, last night, this morning, two hours ago, last Tuesday, at 8 PM). Add them to `tests/eval/`.
 
 **Done when:** all the correction and date eval cases pass.
 
 ## B11 — History queries
 
-- [ ] `search_meal_history` tool: date range, food-name search, aggregates (sum or average over recorded days, and how many days had records; PRD 13 says not to treat missing days as zero).
-- [ ] Eval cases: "what did I eat last Tuesday", "protein yesterday", "last time I had salmon", "average calories this week".
+- [x] `search_meal_history` tool: date range, food-name search, aggregates (sum or average over recorded days, and how many days had records; PRD 13 says not to treat missing days as zero).
+- [x] Eval cases: "what did I eat last Tuesday", "protein yesterday", "last time I had salmon", "average calories this week".
 - [ ] **(H6/H7)** Confirm with Ken that history and message pagination are wired.
 
 ## B12 — Goals, preferences, onboarding

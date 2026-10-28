@@ -43,7 +43,17 @@ The rules for ambiguous phrasings ("last Tuesday" said on a Tuesday, "at 8 PM" s
 
 ## Correction cases: `correction-cases.jsonl`
 
-Plan step B10; PRD FR-06, §12.5, §12.14. This file is data only for now. The runner needs B8's chat tools, so until then `lib/correction-cases.test.ts` only checks that each case is well-formed and consistent with its own fixture. The schema is `correctionCaseSchema` in `lib/cases.ts`.
+Plan step B10; PRD FR-06, §12.5, §12.14. The schema is `correctionCaseSchema` in `lib/cases.ts`.
+
+```bash
+npm test                                                     # CI: scripted model, no keys, no cost
+npx tsx tests/eval/run-corrections.ts --provider anthropic --max-usd 0.05   # opt-in: a real model (paid)
+```
+
+Both runners use the harness in `lib/corrections.ts`. It seeds the case's meals into the in-memory Supabase (`src/lib/database/__fixtures__/fake-db.ts`) for one test user, then runs the message through the real chat turn: `buildContext()` with the recent meals, `runChatTurn()`, the real tools, and `createMealStore()` on B7's meal writes. Afterwards `checkCorrection()` compares the saved meals with `expected`. Only the model differs:
+
+- `lib/correction-cases.test.ts` (in `npm test`) checks that each case is well-formed, then drives it with a scripted model. `SCRIPTED_CALLS` holds the call a good model would make. Its meal ID and version are read from the context block, so the run also checks that B10's context lists them. It also checks that the checker catches wrong outcomes (a guess, the wrong item or time, the wrong meal).
+- `run-corrections.ts` uses a real provider, behind the same kind of `--max-usd` hard cap as the bake-off (default $0.05). It refuses unpriced models. Food lookups use the harness's fixed list (skim milk), so it needs no USDA key.
 
 Each line is one correction message, the state it applies to, and the expected outcome:
 
@@ -69,7 +79,7 @@ Each line is one correction message, the state it applies to, and the expected o
     - `totals.calories`: `down`, `up`, or `same` versus the fixture.
     - Anything not listed must be unchanged: other items, other meals, and `consumed_at` unless a date effect is given.
   - `{"kind":"delete","tool":"delete_meal","meal_id"}`: exactly one `delete_meal` call on that meal.
-  - `{"kind":"clarification","candidate_meal_ids":[...]}`: no `update_meal` or `delete_meal` call at all; the reply asks which meal (PRD 12.5). The listed meals are the plausible targets.
+  - `{"kind":"clarification","candidate_meal_ids":[...]}`: no meal is changed or deleted, and the reply asks which meal (PRD 12.5). The listed meals are the plausible targets. An `update_meal` call without `meal_id` is allowed: the tool writes nothing and returns `needs_clarification`, and its `candidates` must be exactly these meals.
 
 The 8 cases: remove the cheese, I only ate half, that was lunch yesterday, make it 2 eggs not 3, it was 200g not 150g, actually that was skim milk, delete that last meal, and "remove the cheese" when two meals today have cheese (needs a clarification).
 
@@ -108,7 +118,7 @@ cases/sandy-01-chicken-rice/
 
 ## History cases: `history-cases.jsonl` (B11)
 
-Deterministic checks for history questions: no model and no API calls. `lib/history-cases.test.ts` runs every case in `npm test`. For each case it seeds the fixture meals into the in-memory Supabase (`src/lib/database/__fixtures__/fake-db.ts`, which emulates RLS and `list_meals`), makes the call that B8's `search_meal_history` tool would make, and checks the numbers. Date phrases are already resolved in `call.args`. Turning "last Tuesday" into a date is B10's job, and its eval cases cover it.
+Deterministic checks for history questions: no model and no API calls. `lib/history-cases.test.ts` runs every case in `npm test`. For each case it seeds the fixture meals into the in-memory Supabase (`src/lib/database/__fixtures__/fake-db.ts`, which emulates RLS and `list_meals`), makes the call that B8's `search_meal_history` tool would make, and checks the numbers. It then runs the same case through the tool itself (`runTool` with `createMealStore`), with macros checked to within 0.5 because the tool rounds for display. Date phrases are already resolved in `call.args`. Turning "last Tuesday" into a date is B10's job, and its eval cases cover it.
 
 One JSON object per line (shortened here; the schema is `historyCaseSchema` in `lib/history-cases.test.ts`):
 
