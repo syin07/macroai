@@ -1,6 +1,6 @@
 # MacroAI release checklist
 
-Updated 2026-10-28 for Ken's A15 local pass. This is a review handoff, **not a production release sign-off**. Ken confirmed there is no deployment yet and requested local work only. Sandy owns deployment and backend verification. The A11–A15 PR stack still needs review/merge; plan boxes are ticked only after merge and acceptance.
+Updated 2026-10-28 for Ken's A15 local pass. This is a review handoff, **not a production release sign-off**. Ken confirmed there is no deployment yet and requested local work only. Sandy owns deployment and backend verification. A11–A14 and Sandy's chat/photo/history implementations have now merged to main; A15 is based on that main and still needs review/merge. Plan boxes are ticked only after merge and acceptance. H4/H5/H7 labels below refer to deployed integration verification, not missing endpoint implementations.
 
 ## Local A15 evidence
 
@@ -11,7 +11,7 @@ Updated 2026-10-28 for Ken's A15 local pass. This is a review handoff, **not a p
 - All auth UI operations call Sandy's real helpers outside development mocks. Password updates recheck recovery claims; a query string cannot authorize one. Provider errors are sanitized, failed inputs retained, and successful account transitions clear old query data.
 - Production ignores `NEXT_PUBLIC_USE_MOCKS=1` and `{mock:true}`. Ten scratch routes and ten preview-only components are removed, leaving no debug controls. Test fixtures remain for automated tests.
 - Regression tests cover real-helper delegation, production mock exclusion, verified recovery, route focus, retained errors and asynchronous editor loading. Full Windows testing still encounters the pre-existing `tests/eval/lib/eval.test.ts` URL pathname issue; Sandy should use `fileURLToPath(import.meta.url)` instead of `new URL(import.meta.url).pathname`. That backend-owned file is unchanged. Linux CI is the full-suite gate.
-- Final local validation: lint/typecheck/production build pass; 52 focused tests pass; full suite 845/846 passes with only that existing Windows failure. The production build was made with `NEXT_PUBLIC_USE_MOCKS=1` deliberately set: all ten scratch route entries are absent; seven retired public preview URLs return 404, `/dev/*` stays behind default-deny auth, `/chat` redirects signed-out users and `/api/me` returns 401. Production sign-in buttons are enabled, with no preview banner/debug controls. A scan of all 37 emitted client JS files found zero mock-host/fixture/debug/banner signatures and zero configured server-secret variable/key-prefix patterns. This local placeholder-config scan does not replace checking the final deployed build.
+- Final local validation after incorporating main `08707e4`: lint/typecheck/production build pass; 52 focused tests pass; expanded full suite has 1,340 passes, 27 opt-in local-Supabase integration tests skipped, and only that existing Windows failure. The production build was made with `NEXT_PUBLIC_USE_MOCKS=1` deliberately set: all ten scratch route entries are absent; seven retired public preview URLs return 404, `/dev/*` stays behind default-deny auth, `/chat` redirects signed-out users and `/api/me` returns 401. The merged `/api/messages` and `POST /api/ai/chat` also return 401 signed out. Production sign-in buttons are enabled, with no preview banner/debug controls. All 37 emitted client JS files have zero mock-host/fixture/debug/banner signatures; Sandy's `tests/security/scan-bundle.ts` also reports no secrets in all 38 static assets. This local placeholder-config scan does not replace checking the final deployed build.
 
 ## PRD §19, criterion by criterion
 
@@ -22,12 +22,12 @@ Updated 2026-10-28 for Ken's A15 local pass. This is a review handoff, **not a p
 | Accounts | Both approved users can sign in. | Frontend delegates all auth methods to H2 helpers; **pending live** Google and email/password for both users. |
 | Accounts | Unapproved accounts are blocked. | Proxy/server and frontend approval routing tests; **pending live** third-account attempt. |
 | Accounts | Their data remains isolated. | Server/RLS enforcement exists; **pending live**, Sandy: cross-account reads and writes through every route. |
-| Chat | Users can send and receive messages. | Local send/retry UI tests; **backend pending H4**, then live send/reply. |
-| Chat | Chat messages persist across refreshes. | Local fixtures retain correct shapes; **backend pending H4/H7**, then refresh/cross-device verification. |
-| Chat | Chat history can be retrieved. | Local cursor pagination/anchoring tests; **backend pending H7**, then live scrollback. |
+| Chat | Users can send and receive messages. | Local send/retry UI and backend chat tests; H4 code merged; **pending live** send/reply. |
+| Chat | Chat messages persist across refreshes. | Chat/message persistence code merged; **pending live H4/H7** refresh/cross-device verification. |
+| Chat | Chat history can be retrieved. | Local cursor pagination/anchoring and backend message tests; H7 code merged; **pending live** scrollback. |
 | Chat | The assistant correctly distinguishes ordinary questions from meal logging. | **Pending backend/live** classification and grounded-answer evaluation after H4. |
-| Food Recognition | Text meal input produces editable nutritional results. | Local proposal/editor tests; **backend pending H4**, then real meals. |
-| Food Recognition | Photo input produces editable nutritional results. | Local resize/upload UI tests; **backend pending H5**, then real iPhone/Android photos. |
+| Food Recognition | Text meal input produces editable nutritional results. | Local proposal/editor and backend chat tests; H4 code merged; **pending live** real meals. |
+| Food Recognition | Photo input produces editable nutritional results. | Local resize/upload UI and backend photo tests; H5 code merged; **pending live** real iPhone/Android photos. |
 | Food Recognition | Nutritional information uses database matching where appropriate. | Backend lookup/provenance pipeline; **pending live** inspect source matches on representative foods. |
 | Food Recognition | AI-only fallback values are labeled. | Local card fixtures verify source/estimate labels; **pending live** H4/H5 fallback response. |
 | Food Recognition | Users can correct estimated portions and macros. | Local editor/manual override/version-conflict tests; **pending live** save and reload corrections. |
@@ -57,7 +57,7 @@ Updated 2026-10-28 for Ken's A15 local pass. This is a review handoff, **not a p
 | Deployment | Application is accessible through the intended Vercel URL. | **Pending Sandy deployment**; Ken explicitly assigned Vercel to Sandy. |
 | Deployment | Authentication is functioning in production. | H2 frontend wiring locally verified; **pending deployment** callbacks, allow-list, recovery and session persistence. |
 | Deployment | Production database migrations are applied. | **Pending Sandy** confirmation against the intended production Supabase project. |
-| Deployment | No critical errors remain in principal user flows. | Local automated/browser checks; **pending H4/H5/H7, security/device pass and joint release sign-off**. |
+| Deployment | No critical errors remain in principal user flows. | Local automated/browser checks and merged backend; **pending deployed H4/H5/H7, security/device pass and joint release sign-off**. |
 
 ## Device and Lighthouse runbook (pending deployment)
 

@@ -65,8 +65,8 @@ sign-up, reset email, session inspection, password update and sign-out are wired
 before a password update. Successful sign-in/sign-out clears old private query data.
 
 Real OAuth, email delivery, account approval, session persistence and cross-account
-isolation still need deployment testing. Chat send/photo/history endpoints are
-Sandy's remaining H4/H5/H7 integration work. See the line-by-line
+isolation still need deployment testing. Sandy's chat/photo/history endpoint
+implementations are now merged; their end-to-end deployment checks remain. See the line-by-line
 [release checklist](docs/release-checklist.md) for evidence and outstanding checks.
 
 ## Meal editing
