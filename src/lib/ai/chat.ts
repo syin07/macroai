@@ -1,4 +1,5 @@
 import { ApiErrorException } from "@/lib/api-error";
+import { isAiCapReached } from "./cap";
 import type { ChatContext } from "./context";
 import type { AIProvider, ProviderMessage } from "./provider";
 import { newTurnState, runTool, toolDefs, type ToolContext, type TurnState } from "./tools";
@@ -12,14 +13,21 @@ import type { RecordUsage } from "./usage";
 // no model call left to report on them.
 export const MAX_TOOL_STEPS = 6;
 
+// The reply when the daily AI cap is reached partway through a turn (after what the turn already did).
+export const CAP_REACHED_REPLY = "You've reached today's AI limit, so I stopped here. You can still log and edit meals by hand.";
+
 export interface ChatTurnDeps {
   provider: AIProvider;
   recordUsage: RecordUsage;
+  // Runs before every chat model call; throws ApiErrorException("ai_cap_reached") at the daily cap.
+  // The route passes its AiCapGuard (cap.ts). Extraction calls are checked inside ToolContext.analyze.
+  checkCap: () => Promise<unknown>;
 }
 
 export interface ChatTurnResult {
   text: string;
   state: TurnState;
+  capReached: boolean; // the turn stopped early at the daily AI cap
 }
 
 function aiUnavailable(cause: unknown): ApiErrorException {
@@ -39,9 +47,9 @@ async function record(deps: ChatTurnDeps, model: string, usage: { inputTokens: n
 
 const kcal = (value: number) => `${Math.round(value)} kcal`;
 
-// Used when the model ends without text (or the provider fails after tools already ran). Built only
-// from TurnState, so it can't claim a save that didn't happen.
-export function fallbackText(state: TurnState): string {
+// What the turn did, in plain lines. Built only from TurnState, so it can't claim a save that didn't
+// happen.
+function workLines(state: TurnState): string[] {
   const lines: string[] = [];
   const saved = [...state.meals.values()];
   if (saved.length > 0) lines.push(`Saved: ${saved.map((meal) => `${meal.name} (${kcal(meal.totals.calories)})`).join(", ")}.`);
@@ -55,8 +63,20 @@ export function fallbackText(state: TurnState): string {
     );
   }
   if (state.cards.some((card) => card.kind === "meal" && card.meal === null)) lines.push("Deleted.");
-  return lines.join("\n") || "Sorry, I couldn't finish that. Please try again.";
+  return lines;
 }
+
+// Used when the model ends without text (or the provider fails after tools already ran).
+export function fallbackText(state: TurnState): string {
+  return workLines(state).join("\n") || "Sorry, I couldn't finish that. Please try again.";
+}
+
+// Used when the cap stops the turn: what was done, then the limit message.
+export function capReachedText(state: TurnState): string {
+  return [...workLines(state), CAP_REACHED_REPLY].join("\n");
+}
+
+const didWork = (state: TurnState) => state.cards.length > 0 || state.mealChanged;
 
 export async function runChatTurn(chat: ChatContext, tools: ToolContext, deps: ChatTurnDeps): Promise<ChatTurnResult> {
   const state = newTurnState();
@@ -65,12 +85,26 @@ export async function runChatTurn(chat: ChatContext, tools: ToolContext, deps: C
   let text = "";
 
   for (let step = 1; step <= MAX_TOOL_STEPS; step++) {
+    try {
+      await deps.checkCap();
+    } catch (error) {
+      // Before the first call nothing has happened: the route answers 429. Later, end the turn with
+      // what it already did (an extraction that hit the cap shows up here as well).
+      if (isAiCapReached(error)) {
+        if (step === 1) throw error;
+        return { text: capReachedText(state), state, capReached: true };
+      }
+      // The count couldn't be read: like a provider failure, keep finished work.
+      if (didWork(state)) break;
+      throw aiUnavailable(error);
+    }
+
     let turn;
     try {
       turn = await deps.provider.chat({ system: chat.system, context: chat.context, messages, tools: defs });
     } catch (error) {
       // Work already done (a saved meal) must still be reported, or a retry would redo it.
-      if (state.cards.length > 0 || state.mealChanged) break;
+      if (didWork(state)) break;
       throw aiUnavailable(error);
     }
     await record(deps, turn.model, turn.usage);
@@ -87,5 +121,5 @@ export async function runChatTurn(chat: ChatContext, tools: ToolContext, deps: C
     messages.push({ role: "tool", results });
   }
 
-  return { text: text.trim() || fallbackText(state), state };
+  return { text: text.trim() || fallbackText(state), state, capReached: false };
 }

@@ -15,7 +15,7 @@ import {
 import type { AIProvider, ExtractMealInput, ExtractMealOutput, MealImage } from "./provider";
 import type { RecordUsage, UsageEntry } from "./usage";
 
-// Text (and later photo) → meal proposals (PRD §5.5). The model only extracts; nutrition comes from
+// Text and/or photo → meal proposals (PRD §5.5). The model only extracts; nutrition comes from
 // USDA matches where possible, all math runs through calc.ts, and dates are resolved in code. Nothing
 // is saved here: proposals go back to the caller (B8's create_meal_proposal tool, or the eval route).
 
@@ -45,6 +45,9 @@ export interface AnalyzeMealDeps {
   recordUsage: RecordUsage;
   // Relevant saved memories for this message: pass memoryLoader(supabase) from src/lib/memory/retrieve.ts.
   loadMemories?: (userId: string, text: string | undefined) => Promise<string[]>;
+  // Runs before every extraction call, the retry included; throws ApiErrorException("ai_cap_reached")
+  // at the daily cap. AI routes pass their AiCapGuard's check (cap.ts).
+  checkCap?: () => Promise<unknown>;
   newId?: () => string;
 }
 
@@ -92,6 +95,7 @@ function aiUnavailable(cause: unknown): ApiErrorException {
 
 async function extractWithRetry(input: ExtractMealInput, deps: AnalyzeMealDeps): Promise<ExtractMealOutput> {
   for (let attempt = 1; ; attempt++) {
+    await deps.checkCap?.(); // ai_cap_reached propagates as is (429, or the chat turn ends early)
     let output: ExtractMealOutput;
     try {
       output = await deps.provider.extractMeal(input);

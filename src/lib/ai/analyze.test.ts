@@ -389,6 +389,101 @@ describe("analyzeMeal: invalid model output", () => {
   });
 });
 
+describe("analyzeMeal: daily AI cap", () => {
+  const reply = logged(meal({ name: "Eggs", foods: [eggs] }));
+  const capAfter = (allowed: number) => {
+    let checks = 0;
+    return vi.fn(async () => {
+      if (++checks > allowed) throw new ApiErrorException("ai_cap_reached");
+    });
+  };
+
+  it("checks the cap before the extraction call", async () => {
+    const checkCap = capAfter(0);
+    const { run, provider, usage } = setup([reply], { checkCap });
+    await expect(run("2 eggs")).rejects.toMatchObject({ code: "ai_cap_reached" });
+    expect(provider.calls).toHaveLength(0);
+    expect(usage).toHaveLength(0);
+  });
+
+  it("checks again before the retry, so a bad answer at cap - 1 can't go over", async () => {
+    const checkCap = capAfter(1);
+    const { run, provider, usage } = setup([invalidOutput(), reply], { checkCap });
+    await expect(run("2 eggs")).rejects.toMatchObject({ code: "ai_cap_reached" });
+    expect(checkCap).toHaveBeenCalledTimes(2);
+    expect(provider.calls).toHaveLength(1);
+    expect(usage).toHaveLength(1); // the first, billed call is still recorded
+  });
+
+  it("checks once per call on the normal path", async () => {
+    const checkCap = vi.fn(async () => undefined);
+    const { run } = setup([invalidOutput(), reply], { checkCap });
+    await run("2 eggs");
+    expect(checkCap).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("analyzeMeal: photos (B9)", () => {
+  const PHOTO = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 1, 2, 3]), mediaType: "image/jpeg" as const };
+  const fries = extractedFood({
+    name: "French fries",
+    quantity: 1,
+    unit: "serving",
+    grams: 120,
+    preparation: "fried",
+    search_query: "potatoes, french fried",
+    estimated_quantity: true,
+    confidence: "medium",
+    estimated_macros: macros(370, 4, 48, 17),
+    estimate_range: { calories_low: 300, calories_high: 440, protein_g_low: 3, protein_g_high: 5 },
+  });
+  const ranch = extractedFood({
+    name: "Ranch dressing",
+    quantity: 2,
+    unit: "tbsp",
+    grams: 30,
+    search_query: "salad dressing, ranch",
+    estimated_quantity: true,
+    inferred: true,
+    confidence: "low",
+    estimated_macros: macros(129, 0.4, 1.8, 13.4),
+    estimate_range: { calories_low: 65, calories_high: 200, protein_g_low: 0, protein_g_high: 1 },
+    notes: "Dipping cup visible; assumed 2 tbsp",
+  });
+
+  it("sends the photo and its caption in one extraction call", async () => {
+    const { provider, deps } = setup([logged(meal({ name: "Fries", foods: [fries] }))]);
+    await analyzeMeal({ text: "fried, with ranch", image: PHOTO, user: USER, now: NOW }, deps);
+    expect(provider.calls).toHaveLength(1);
+    expect(provider.calls[0]).toMatchObject({ text: "fried, with ranch", image: PHOTO });
+  });
+
+  it("accepts a photo with no text", async () => {
+    const { provider, deps } = setup([logged(meal({ name: "Fries", foods: [fries] }))]);
+    const { proposals } = await analyzeMeal({ image: PHOTO, user: USER, now: NOW }, deps);
+    expect(proposals).toHaveLength(1);
+    expect(provider.calls[0]!.text).toBeUndefined();
+    expect(provider.calls[0]!.image).toBe(PHOTO);
+  });
+
+  it("keeps a hidden ingredient as its own inferred, low-confidence item", async () => {
+    const { deps } = setup([logged(meal({ name: "Fries", foods: [fries, ranch] }))]);
+    const { proposals } = await analyzeMeal({ image: PHOTO, user: USER, now: NOW }, deps);
+    const items = proposals[0]!.items;
+    expect(items).toHaveLength(2);
+    expect(items[1]).toMatchObject({ food_name: "Ranch dressing", inferred: true, confidence: "low" });
+    expect(items[0]).toMatchObject({ inferred: false });
+    expect(mealProposalSchema.safeParse(proposals[0]).success).toBe(true);
+  });
+
+  it("an unrecognizable photo gives no proposals and the model's short explanation", async () => {
+    const explanation = "I can't make out the food in this photo. Could you describe it?";
+    const { deps } = setup([{ intent: "other", meals: [], explanation }]);
+    const analysis = await analyzeMeal({ image: PHOTO, user: USER, now: NOW }, deps);
+    expect(analysis).toMatchObject({ intent: "other", proposals: [], explanation });
+  });
+});
+
 describe("usage logging", () => {
   it("records every successful call", async () => {
     const { run, usage } = setup([logged(meal({ name: "Eggs", foods: [eggs] }))]);
