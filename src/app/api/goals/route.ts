@@ -1,16 +1,10 @@
-import { z } from "zod";
-import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { requireUser } from "@/lib/auth/server";
 import { getGoalsOn, saveGoals } from "@/lib/database/goals";
 import { userToday } from "@/lib/database/profile";
 import { putGoalsRequestSchema } from "@/lib/validation";
+import { handleRouteError } from "../_lib/route";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
-
-function logFailure(route: string, error: unknown) {
-  if (error instanceof ApiErrorException || error instanceof z.ZodError) return;
-  console.error(`${route} failed:`, error);
-}
 
 // GET /api/goals → NutritionGoals | null: the targets in effect today in the user's time zone.
 export async function GET() {
@@ -19,8 +13,7 @@ export async function GET() {
     const goals = await getGoalsOn(supabase, user.id, await userToday(supabase, user.id));
     return Response.json(goals, { headers: NO_STORE });
   } catch (error) {
-    logFailure("GET /api/goals", error);
-    return toErrorResponse(error);
+    return handleRouteError("GET /api/goals", error);
   }
 }
 
@@ -33,7 +26,6 @@ export async function PUT(request: Request) {
     const goals = await saveGoals(supabase, user.id, await userToday(supabase, user.id), body);
     return Response.json(goals, { headers: NO_STORE });
   } catch (error) {
-    logFailure("PUT /api/goals", error);
-    return toErrorResponse(error);
+    return handleRouteError("PUT /api/goals", error);
   }
 }

@@ -1,8 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { Memory } from "@/types/api";
-import { ApiErrorException } from "@/lib/api-error";
-import { assertWithinAiCap } from "@/lib/ai/cap";
+import { assertWithinAiCap, isAiCapReached } from "@/lib/ai/cap";
 import {
   EXTRACT_MEMORY_SYSTEM_PROMPT,
   MEMORY_CATEGORIES,
@@ -24,12 +23,14 @@ import {
   loadMemoriesForDedup,
   updateMemory,
   type MemoryCategory,
+  type NewMemory,
 } from "./store";
 import { compareMemoryText, containsQuote } from "./text";
 
 // The memory second pass (PRD FR-13, §5.8), run after a chat turn:
 //
 //   1. Check the daily AI cap (the call counts toward it and is logged in ai_usage as "ai/memory").
+//      The pass is optional, so it leaves the day's last call for the user: it skips at cap - 1.
 //   2. Ask the provider, with a small prompt and one tool, whether the exchange holds a reusable fact.
 //   3. Validate the proposal in code. The model never writes to the database.
 //   4. Deduplicate against the user's memories: the same fact → skip; the same subject with new
@@ -44,6 +45,8 @@ import { compareMemoryText, containsQuote } from "./text";
 // error name and message only — never the user's message, the reply, memory text, or model output.
 
 export const REPEATS_TO_SAVE = 2;
+// Calls the memory pass leaves free under the daily cap, so it never uses the last one.
+export const MEMORY_CAP_RESERVE = 1;
 export const CANDIDATE_TTL_DAYS = 30;
 export const MAX_MEMORY_CONTENT_CHARS = 300;
 
@@ -134,9 +137,9 @@ async function run(input: MaybeSaveMemoryInput, deps: MaybeSaveMemoryDeps): Prom
   const now = deps.now ?? new Date();
 
   try {
-    await assertWithinAiCap(supabase, userId, { now });
+    await assertWithinAiCap(supabase, userId, { now, reserve: MEMORY_CAP_RESERVE });
   } catch (error) {
-    if (error instanceof ApiErrorException && error.code === "ai_cap_reached") return skipped("ai_cap_reached");
+    if (isAiCapReached(error)) return skipped("ai_cap_reached");
     throw error;
   }
 
@@ -206,16 +209,48 @@ async function run(input: MaybeSaveMemoryInput, deps: MaybeSaveMemoryDeps): Prom
     promoted = seen.id;
   }
 
-  let result: MaybeSaveMemoryResult | null = null;
-  if (target) {
-    const updated = await updateMemory(supabase, userId, target.id, { content, category });
-    if (updated) result = { status: "updated", memory: updated };
-    // null: deleted since we read it, so save it as a new memory instead.
-  }
-  if (!result) {
-    const sourceMessageId = uuid.safeParse(input.sourceMessageId).success ? input.sourceMessageId : null;
-    result = { status: "saved", memory: await insertMemory(supabase, userId, { category, content, sourceMessageId }) };
-  }
+  const result = await writeMemory(supabase, userId, target, { category, content, sourceMessageId: input.sourceMessageId });
   if (promoted) await deleteCandidate(supabase, userId, promoted);
   return result;
+}
+
+// Updates `target` if given (and still live), otherwise inserts a new memory.
+async function writeMemory(
+  supabase: SupabaseClient,
+  userId: string,
+  target: Memory | null,
+  memory: NewMemory,
+): Promise<{ status: "saved" | "updated"; memory: Memory }> {
+  if (target) {
+    const updated = await updateMemory(supabase, userId, target.id, { content: memory.content, category: memory.category });
+    if (updated) return { status: "updated", memory: updated };
+    // null: deleted since we read it, so save it as a new memory instead.
+  }
+  const sourceMessageId = uuid.safeParse(memory.sourceMessageId).success ? memory.sourceMessageId : null;
+  return { status: "saved", memory: await insertMemory(supabase, userId, { ...memory, sourceMessageId }) };
+}
+
+export type SaveStatedMemoryResult =
+  | { status: "saved" | "updated"; memory: Memory }
+  | { status: "duplicate"; memory: Memory }
+  | { status: "not_stated" };
+
+// The chat tool path (save_user_memory): the user asked, in this message, for something to be
+// remembered. Same rules as an explicit statement in the second pass above: `evidence` must be quoted
+// from the user's own message, or nothing is saved. Deduplicated the same way: the same fact → the
+// existing memory; the same subject with new numbers → that memory is updated. A memory the user deleted
+// earlier may be saved again here, because the user is asking for it again in their own words.
+export async function saveStatedMemory(
+  supabase: SupabaseClient,
+  userId: string,
+  input: { category: MemoryCategory; content: string; evidence: string; userMessage: string; sourceMessageId?: string | null },
+): Promise<SaveStatedMemoryResult> {
+  const content = input.content.trim();
+  if (!content || !containsQuote(input.userMessage, input.evidence)) return { status: "not_stated" };
+
+  const { live } = await loadMemoriesForDedup(supabase, userId);
+  const same = live.find((memory) => compareMemoryText(content, memory.content) === "same");
+  if (same) return { status: "duplicate", memory: same };
+  const target = live.find((memory) => compareMemoryText(content, memory.content) === "revised") ?? null;
+  return writeMemory(supabase, userId, target, { category: input.category, content, sourceMessageId: input.sourceMessageId });
 }

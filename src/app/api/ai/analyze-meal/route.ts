@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { analyzeMeal } from "@/lib/ai/analyze";
-import { assertWithinAiCap } from "@/lib/ai/cap";
+import { createAiCapGuard } from "@/lib/ai/cap";
 import { getProvider } from "@/lib/ai/providers";
 import { createUsageRecorder } from "@/lib/ai/usage";
 import { requireUser } from "@/lib/auth/server";
@@ -38,7 +38,9 @@ export async function POST(request: Request) {
   try {
     const { user, supabase } = await requireUser();
     const body = analyzeMealRequestSchema.parse(await request.json().catch(() => null));
-    await assertWithinAiCap(supabase, user.id);
+    // 429 up front; checked again before each extraction attempt, so the retry can't pass the cap.
+    const capGuard = createAiCapGuard(supabase, user.id);
+    await capGuard.check();
 
     const analysis = await analyzeMeal(
       { text: body.text, user: { id: user.id, timezone: body.timezone }, now: body.now ? new Date(body.now) : undefined },
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
         cache: createSupabaseNutritionCache({ reader: supabase, writer: cacheWriter() }),
         recordUsage: createUsageRecorder(supabase, user.id, "ai/analyze-meal"),
         loadMemories: memoryLoader(supabase),
+        checkCap: () => capGuard.check(),
       },
     );
     return Response.json(analysis, { headers: { "Cache-Control": "private, no-store" } });

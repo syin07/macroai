@@ -118,38 +118,38 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B8 — Chat endpoint with tools
 
-- [ ] `src/lib/ai/tools.ts`: implement the PRD §5.7 tools as plain server functions that take `userId` from the session (never from the model): `search_nutrition_foods`, `get_food_nutrition`, `create_meal_proposal` (wraps B6), `save_meal`, `update_meal`, `delete_meal`, `get_daily_totals`, `search_meal_history`, `get_nutrition_goals`, `search_user_memories`, `save_user_memory`, `delete_user_memory`. Validate each tool's input with Zod.
-- [ ] `src/lib/ai/context.ts`: build the context package: system prompt (tone from PRD FR-05, today's date, the user's timezone, save mode), the last 12 messages, today's `DailySummary`, the top relevant memories (keyword match is fine for MVP), and IDs of the last few meals for corrections. Keep it under ~6K tokens.
-- [ ] `POST /api/ai/chat`: parse the multipart body, check `client_message_id` for replay, insert the user message (`had_image`, no image bytes), run the tool loop (max 6 steps), apply save mode (`confirm` → return proposal cards; `auto` → call `save_meal` unless `needs_clarification`), insert the assistant message with its cards, and return the contract response.
-- [ ] Prompt rules: never claim a save that didn't happen (only say "saved" if `save_meal` returned success); answer account questions only from tool results; never change goals.
-- [ ] `GET /api/messages` (cursor by `created_at, id`), `DELETE /api/messages/:id`. When serving messages, re-hydrate `kind: "meal"` cards with current meal data (`null` if deleted).
+- [x] `src/lib/ai/tools.ts`: implement the PRD §5.7 tools as plain server functions that take `userId` from the session (never from the model): `search_nutrition_foods`, `get_food_nutrition`, `create_meal_proposal` (wraps B6), `save_meal`, `update_meal`, `delete_meal`, `get_daily_totals`, `search_meal_history`, `get_nutrition_goals`, `search_user_memories`, `save_user_memory`, `delete_user_memory`. Validate each tool's input with Zod.
+- [x] `src/lib/ai/context.ts`: build the context package: system prompt (tone from PRD FR-05, today's date, the user's timezone, save mode), the last 12 messages, today's `DailySummary`, the top relevant memories (keyword match is fine for MVP), and IDs of the last few meals for corrections. Keep it under ~6K tokens.
+- [x] `POST /api/ai/chat`: parse the multipart body, check `client_message_id` for replay, insert the user message (`had_image`, no image bytes), run the tool loop (max 6 steps), apply save mode (`confirm` → return proposal cards; `auto` → call `save_meal` unless `needs_clarification`), insert the assistant message with its cards, and return the contract response.
+- [x] Prompt rules: never claim a save that didn't happen (only say "saved" if `save_meal` returned success); answer account questions only from tool results; never change goals.
+- [x] `GET /api/messages` (cursor by `created_at, id`), `DELETE /api/messages/:id`. When serving messages, re-hydrate `kind: "meal"` cards with current meal data (`null` if deleted).
 - [ ] **(H4)** Tell Ken text chat is live.
 
 **Done when:** "2 eggs and toast" → proposal card → save → daily summary updates, through the real UI or `curl`.
 
 ## B9 — Photos
 
-- [ ] Accept `image` in `/api/ai/chat`: check the MIME type (JPEG/PNG/WebP), reject over 1.5 MB with `413`, and pass the bytes straight to `extractMeal`. **Never write them to storage or logs** (PRD FR-15 default).
-- [ ] Merge the text caption into the same extraction call.
-- [ ] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
-- [ ] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
+- [x] Accept `image` in `/api/ai/chat`: check the MIME type (JPEG/PNG/WebP), reject over 1.5 MB with `413`, and pass the bytes straight to `extractMeal`. **Never write them to storage or logs** (PRD FR-15 default).
+- [x] Merge the text caption into the same extraction call.
+- [x] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
+- [x] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
 - [ ] **(H5)** Tell Ken photos are live.
 
 **Done when:** a phone photo taken through the real UI produces a card, and nothing image-related exists in the database or storage afterwards.
 
 ## B10 — Corrections and dates
 
-- [ ] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday".
-- [ ] `update_meal` tool: if more than one meal plausibly matches, return a clarification instead of guessing (PRD 12.5).
-- [ ] Use the meal `version` in the tool to avoid overwriting newer user edits (PRD 12.14).
-- [ ] Eval cases for 8 correction phrasings and 6 date phrasings (yesterday, last night, this morning, two hours ago, last Tuesday, at 8 PM). Add them to `tests/eval/`.
+- [x] Context includes the last 5 meals (ID, name, time, items) so the model can target a meal for "remove the cheese" / "I only ate half" / "that was lunch yesterday".
+- [x] `update_meal` tool: if more than one meal plausibly matches, return a clarification instead of guessing (PRD 12.5).
+- [x] Use the meal `version` in the tool to avoid overwriting newer user edits (PRD 12.14).
+- [x] Eval cases for 8 correction phrasings and 6 date phrasings (yesterday, last night, this morning, two hours ago, last Tuesday, at 8 PM). Add them to `tests/eval/`.
 
 **Done when:** all the correction and date eval cases pass.
 
 ## B11 — History queries
 
-- [ ] `search_meal_history` tool: date range, food-name search, aggregates (sum or average over recorded days, and how many days had records; PRD 13 says not to treat missing days as zero).
-- [ ] Eval cases: "what did I eat last Tuesday", "protein yesterday", "last time I had salmon", "average calories this week".
+- [x] `search_meal_history` tool: date range, food-name search, aggregates (sum or average over recorded days, and how many days had records; PRD 13 says not to treat missing days as zero).
+- [x] Eval cases: "what did I eat last Tuesday", "protein yesterday", "last time I had salmon", "average calories this week".
 - [ ] **(H6/H7)** Confirm with Ken that history and message pagination are wired.
 
 ## B12 — Goals, preferences, onboarding

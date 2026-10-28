@@ -8,7 +8,7 @@ import {
 } from "@/lib/ai/prompts/extract-memory";
 import { memorySchema } from "@/lib/validation";
 import { FAKE_USAGE, FakeMemoryProvider, NO_MEMORY, proposal, type FakeReply } from "./__fixtures__/fake-provider";
-import { CANDIDATE_TTL_DAYS, maybeSaveMemory, parseProposal } from "./extract";
+import { CANDIDATE_TTL_DAYS, maybeSaveMemory, parseProposal, saveStatedMemory } from "./extract";
 
 const ME = "11111111-1111-4111-8111-111111111111";
 const OTHER = "22222222-2222-4222-8222-222222222222";
@@ -139,8 +139,16 @@ describe("maybeSaveMemory: the model call", () => {
     expect(mine("memory_candidates")).toHaveLength(0);
   });
 
+  it("never takes the day's last call: skips silently at cap - 1", async () => {
+    const { provider, mine, run } = setup({ replies: [proposal({ explicit: true })], usage: usageRows(4) });
+    expect(await run(LOG_SHAKE)).toEqual({ status: "skipped", reason: "ai_cap_reached" });
+    expect(provider.chats).toHaveLength(0);
+    expect(mine("ai_usage")).toHaveLength(4);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
   it("counts only the user's own calls toward the cap", async () => {
-    const { provider, run } = setup({ replies: [NO_MEMORY], usage: [...usageRows(4), ...usageRows(20, OTHER)] });
+    const { provider, run } = setup({ replies: [NO_MEMORY], usage: [...usageRows(3), ...usageRows(20, OTHER)] });
     expect(await run(LOG_SHAKE)).toEqual({ status: "skipped", reason: "no_candidate" });
     expect(provider.chats).toHaveLength(1);
   });
@@ -375,5 +383,46 @@ describe("parseProposal", () => {
 
   it("accepts missing optional fields when there is no memory", () => {
     expect(parseProposal(turn({ has_memory: false }))).toBeNull();
+  });
+});
+
+describe("saveStatedMemory (the chat save_user_memory tool)", () => {
+  const MSG = "remember my usual shake is Fairlife Core Power 42g";
+  const NEW = "Usual shake: Fairlife Core Power 42g, 1 bottle";
+  const client = (rows: Row[]) => {
+    const db = createAppDb({ user_memories: rows });
+    return { db, supabase: db as unknown as SupabaseClient };
+  };
+  const input = (extra: Partial<Parameters<typeof saveStatedMemory>[2]> = {}) => ({
+    category: "frequent_food" as const,
+    content: NEW,
+    evidence: "my usual shake is Fairlife Core Power 42g",
+    userMessage: MSG,
+    sourceMessageId: SOURCE_MESSAGE,
+    ...extra,
+  });
+
+  it("saves nothing unless the evidence is quoted from the user's message", async () => {
+    const { db, supabase } = client([]);
+    expect(await saveStatedMemory(supabase, ME, input({ evidence: "my shake is 42g protein" }))).toEqual({ status: "not_stated" });
+    expect(db.rows("user_memories")).toHaveLength(0);
+  });
+
+  it("updates the memory with the same subject and new numbers instead of adding one", async () => {
+    const { db, supabase } = client([memoryRow("m1", SHAKE), memoryRow("m2", SHAKE, { user_id: OTHER })]);
+    const result = await saveStatedMemory(supabase, ME, input());
+    expect(result).toMatchObject({ status: "updated", memory: { id: "m1", content: NEW } });
+    expect(db.rows("user_memories").map((row) => [row.id, row.content])).toEqual([
+      ["m1", NEW],
+      ["m2", SHAKE],
+    ]);
+  });
+
+  it("saves a new memory with its source message, even one the user deleted before", async () => {
+    const { db, supabase } = client([memoryRow("m1", NEW, { deleted_at: EARLIER })]);
+    expect(await saveStatedMemory(supabase, ME, input())).toMatchObject({ status: "saved", memory: { content: NEW } });
+    expect(db.rows("user_memories").filter((row) => !row.deleted_at)).toMatchObject([
+      { user_id: ME, content: NEW, source_message_id: SOURCE_MESSAGE },
+    ]);
   });
 });

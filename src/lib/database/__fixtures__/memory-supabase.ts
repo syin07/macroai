@@ -35,13 +35,58 @@ function parseValue(raw: string): unknown {
   if (raw === "null") return null;
   if (raw === "true") return true;
   if (raw === "false") return false;
+  if (raw.length >= 2 && raw.startsWith('"') && raw.endsWith('"')) return raw.slice(1, -1);
   return raw;
+}
+
+// A column name, or a JSON path like "tool_payload->>reply_to" (text value of a top-level key).
+function cellValue(row: Row, column: string): unknown {
+  const arrow = column.indexOf("->>");
+  if (arrow === -1) return row[column];
+  const json = row[column.slice(0, arrow)];
+  if (json === null || typeof json !== "object") return null;
+  const value = (json as Row)[column.slice(arrow + 3)];
+  return value === undefined || value === null ? null : String(value);
+}
+
+// Splits a PostgREST logic-tree list ("a.eq.1,and(b.lt.2,c.gt.3)") on top-level commas, keeping
+// parentheses and double-quoted values intact.
+function splitTopLevel(expression: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let quoted = false;
+  let current = "";
+  for (const char of expression) {
+    if (char === '"') quoted = !quoted;
+    if (!quoted && char === "(") depth++;
+    if (!quoted && char === ")") depth--;
+    if (!quoted && depth === 0 && char === ",") {
+      parts.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  if (current) parts.push(current);
+  return parts;
+}
+
+function logicFilter(expression: string, mode: "or" | "and"): Filter {
+  const parts = splitTopLevel(expression).map((part): Filter => {
+    const nested = /^(and|or)\((.*)\)$/.exec(part);
+    if (nested) return logicFilter(nested[2]!, nested[1] as "or" | "and");
+    const [column, operator, ...rest] = part.split(".");
+    return opFilter(column!, operator!, parseValue(rest.join(".")));
+  });
+  return {
+    test: (row) => (mode === "or" ? parts.some((p) => p.test(row)) : parts.every((p) => p.test(row))),
+  };
 }
 
 function opFilter(column: string, op: string, value: unknown): Filter {
   return {
     test: (row) => {
-      const cell = row[column];
+      const cell = cellValue(row, column);
       switch (op) {
         case "eq":
           return cell !== null && cell !== undefined && String(cell) === String(value);
@@ -76,19 +121,25 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
   for (const [name, rows] of Object.entries(options.tables ?? {})) tables[name] = rows.map((row) => ({ ...row }));
   let nextId = 1;
 
-  function violation(table: string, rows: Row[]): string | null {
+  // Postgres error codes: 23505 unique_violation, 23514 check_violation.
+  function violation(table: string, rows: Row[]): { message: string; code: string } | null {
     for (const key of options.unique?.[table] ?? []) {
       const seen = new Set<string>();
       for (const row of rows) {
-        const value = JSON.stringify(key.map((column) => row[column]));
-        if (seen.has(value)) return `duplicate key value violates unique constraint (${key.join(", ")})`;
+        const values = key.map((column) => row[column]);
+        // Like Postgres, a key containing NULL never conflicts.
+        if (values.some((value) => value === null || value === undefined)) continue;
+        const value = JSON.stringify(values);
+        if (seen.has(value)) {
+          return { message: `duplicate key value violates unique constraint (${key.join(", ")})`, code: "23505" };
+        }
         seen.add(value);
       }
     }
     const check = options.checks?.[table];
     for (const row of check ? rows : []) {
       const message = check!(row);
-      if (message) return message;
+      if (message) return { message, code: "23514" };
     }
     return null;
   }
@@ -101,7 +152,7 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
     let returning: string | null = null;
     let single: "single" | "maybe" | null = null;
     const filters: Filter[] = [];
-    let orderBy: { column: string; ascending: boolean } | null = null;
+    const orderBy: Array<{ column: string; ascending: boolean }> = [];
     let limit: number | null = null;
     let offset = 0;
     let count: "exact" | null = null;
@@ -109,14 +160,19 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
 
     function matching(): Row[] {
       let rows = tables[table].filter((row) => filters.every((f) => f.test(row)));
-      if (orderBy) {
-        const { column, ascending } = orderBy;
-        rows = [...rows].sort((a, b) => (ascending ? 1 : -1) * compare(a[column], b[column]));
+      if (orderBy.length > 0) {
+        rows = [...rows].sort((a, b) => {
+          for (const { column, ascending } of orderBy) {
+            const order = compare(a[column], b[column]);
+            if (order !== 0) return ascending ? order : -order;
+          }
+          return 0;
+        });
       }
       return limit === null ? rows.slice(offset) : rows.slice(offset, offset + limit);
     }
 
-    function write(): { rows: Row[]; error: string | null } {
+    function write(): { rows: Row[]; error: { message: string; code: string } | null } {
       const current = tables[table];
       let next: Row[];
       let affected: Row[];
@@ -156,7 +212,7 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
       return { rows: affected, error: null };
     }
 
-    function execute(): { data: unknown; error: { message: string } | null; count?: number | null } {
+    function execute(): { data: unknown; error: { message: string; code?: string } | null; count?: number | null } {
       if (options.fail?.table === table && options.fail.op === op) return { data: null, error: { message: "boom" } };
       let rows: Row[];
       if (op === "select") {
@@ -164,7 +220,7 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
         if (count !== null) return { data: head ? null : rows.map((row) => project(row, returning ?? "*")), error: null, count: rows.length };
       } else {
         const result = write();
-        if (result.error) return { data: null, error: { message: result.error } };
+        if (result.error) return { data: null, error: result.error };
         rows = result.rows;
       }
       const columns = op === "select" ? (returning ?? "*") : returning;
@@ -210,16 +266,19 @@ export function createMemoryDb(options: MemoryDbOptions = {}) {
       lt: vi.fn((column: string, value: unknown) => (filters.push(opFilter(column, "lt", value)), builder)),
       lte: vi.fn((column: string, value: unknown) => (filters.push(opFilter(column, "lte", value)), builder)),
       is: vi.fn((column: string, value: unknown) => (filters.push(opFilter(column, "is", value)), builder)),
-      or: vi.fn((expression: string) => {
-        const parts = expression.split(",").map((part) => {
-          const [column, operator, ...rest] = part.split(".");
-          return opFilter(column, operator, parseValue(rest.join(".")));
+      in: vi.fn((column: string, values: unknown[]) => {
+        const allowed = new Set(values.map(String));
+        filters.push({
+          test: (row) => {
+            const cell = cellValue(row, column);
+            return cell !== null && cell !== undefined && allowed.has(String(cell));
+          },
         });
-        filters.push({ test: (row) => parts.some((p) => p.test(row)) });
         return builder;
       }),
+      or: vi.fn((expression: string) => (filters.push(logicFilter(expression, "or")), builder)),
       order: vi.fn((column: string, opts: { ascending?: boolean } = {}) => {
-        orderBy = { column, ascending: opts.ascending ?? true };
+        orderBy.push({ column, ascending: opts.ascending ?? true });
         return builder;
       }),
       limit: vi.fn((n: number) => ((limit = n), builder)),
@@ -266,6 +325,9 @@ function memoryCheck(row: Row): string | null {
 // The MacroAI tables' keys, checks, and defaults from supabase/migrations/ that the routes rely on.
 export function createAppDb(tables: Record<string, Row[]> = {}, fail?: MemoryDbOptions["fail"]) {
   const now = () => new Date().toISOString();
+  // Message timestamps: a 1 ms tick per insert keeps insertion order deterministic.
+  let clock = Date.parse("2026-10-26T18:00:00.000Z");
+  const tick = () => new Date(clock++).toISOString();
   return createMemoryDb({
     tables,
     fail,
@@ -279,11 +341,24 @@ export function createAppDb(tables: Record<string, Row[]> = {}, fail?: MemoryDbO
       }),
       memory_candidates: () => ({ id: crypto.randomUUID(), occurrences: 1, created_at: now(), last_seen_at: now() }),
       ai_usage: () => ({ created_at: now() }),
+      messages: () => ({
+        id: crypto.randomUUID(),
+        created_at: tick(),
+        content: "",
+        cards: [],
+        tool_payload: null,
+        had_image: false,
+        related_meal_id: null,
+        status: "sent",
+        client_message_id: null,
+      }),
+      conversations: () => ({ id: crypto.randomUUID(), created_at: tick(), updated_at: tick(), title: null }),
     },
     unique: {
       profiles: [["id"]],
       account_preferences: [["user_id"]],
       nutrition_goals: [["user_id", "effective_from"]],
+      messages: [["user_id", "client_message_id"]],
     },
     checks: {
       nutrition_goals: (row) =>

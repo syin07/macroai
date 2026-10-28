@@ -4,6 +4,7 @@ import { EXTRACTION_SCHEMA_NAME, extractionJsonSchema, parseExtractionOutput, ty
 import { EXTRACT_MEAL_PROMPT_VERSION, EXTRACT_MEAL_SYSTEM_PROMPT, buildExtractMealUserText } from "../prompts/extract-meal";
 import {
   imageToBase64,
+  joinSystem,
   type AIProvider,
   type ChatInput,
   type ExtractMealInput,
@@ -83,7 +84,7 @@ export class OpenAIProvider implements AIProvider {
       model: this.model,
       max_completion_tokens: EXTRACTION_MAX_OUTPUT_TOKENS,
       ...(this.reasoningEffort ? { reasoning_effort: this.reasoningEffort } : {}),
-      messages: [{ role: "developer", content: input.system }, ...input.messages.flatMap(toOpenAIMessages)],
+      messages: [{ role: "developer", content: joinSystem(input) }, ...input.messages.flatMap(toOpenAIMessages)],
       tools: input.tools.map((tool) => ({
         type: "function" as const,
         function: { name: tool.name, description: tool.description, parameters: tool.parameters },

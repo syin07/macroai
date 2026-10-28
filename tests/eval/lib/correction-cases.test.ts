@@ -1,0 +1,139 @@
+import { formatInTimeZone } from "date-fns-tz";
+import { describe, expect, it } from "vitest";
+import { resolveConsumedAt } from "@/lib/ai/dates";
+import { loadCorrectionCases, type CorrectionCase } from "./cases";
+import { SCRIPTED_CALLS, checkCorrection, fromContext, runCorrectionCase, scriptedProvider, type ScriptedCall } from "./corrections";
+
+// B10 correction cases (correction-cases.jsonl). First, every case must be well-formed and its
+// expectation must refer to things in its own fixture. Then each case runs through the real chat turn
+// and tools (lib/corrections.ts) with a scripted model that makes the call a good model would, and the
+// saved meals are checked against the expectation. No model, no keys: this is the CI half of the eval;
+// run-corrections.ts runs the same cases against a real model.
+const cases = await loadCorrectionCases();
+
+const REQUIRED_INPUTS = [
+  "remove the cheese",
+  "I only ate half",
+  "that was lunch yesterday",
+  "make it 2 eggs not 3",
+  "it was 200g not 150g",
+  "actually that was skim milk",
+  "delete that last meal",
+];
+
+function itemIds(c: CorrectionCase, mealId: string): string[] {
+  return c.recent_meals.find((m) => m.id === mealId)?.items.map((i) => i.id) ?? [];
+}
+
+describe("correction-cases.jsonl", () => {
+  it("has the 8 required phrasings, including one that needs a clarification", () => {
+    expect(cases.length).toBeGreaterThanOrEqual(8);
+    const inputs = cases.map((c) => c.input);
+    for (const input of REQUIRED_INPUTS) expect(inputs).toContain(input);
+    expect(cases.some((c) => c.expected.kind === "clarification")).toBe(true);
+    expect(cases.some((c) => c.expected.kind === "delete")).toBe(true);
+  });
+
+  it.each(cases.map((c) => [c.id, c] as const))("%s: fixture is consistent", (_, c) => {
+    const now = new Date(c.now).getTime();
+    const mealIds = c.recent_meals.map((m) => m.id);
+    expect(new Set(mealIds).size, "meal ids unique").toBe(mealIds.length);
+
+    // Newest first, never in the future.
+    const times = c.recent_meals.map((m) => new Date(m.consumed_at).getTime());
+    for (const [i, t] of times.entries()) {
+      expect(t, `${mealIds[i]} not in the future`).toBeLessThanOrEqual(now);
+      if (i > 0) expect(t, "recent_meals newest first").toBeLessThanOrEqual(times[i - 1]!);
+    }
+
+    const { expected } = c;
+    if (expected.kind === "clarification") {
+      for (const id of expected.candidate_meal_ids) expect(mealIds).toContain(id);
+      return;
+    }
+
+    expect(mealIds).toContain(expected.meal_id);
+    if (expected.kind === "delete") return;
+
+    const meal = c.recent_meals.find((m) => m.id === expected.meal_id)!;
+    expect(expected.version, "the tool must send the version it read (PRD 12.14)").toBe(meal.version);
+
+    const ids = itemIds(c, expected.meal_id);
+    const referenced = [
+      ...(expected.removed_items ?? []),
+      ...Object.keys(expected.item_grams ?? {}),
+      ...Object.keys(expected.item_quantity ?? {}),
+      ...Object.keys(expected.item_renamed ?? {}),
+    ];
+    for (const id of referenced) expect(ids, `item ${id} is in ${meal.id}`).toContain(id);
+
+    const changes = [
+      expected.removed_items?.length,
+      expected.scale_all,
+      Object.keys(expected.item_grams ?? {}).length,
+      Object.keys(expected.item_quantity ?? {}).length,
+      Object.keys(expected.item_renamed ?? {}).length,
+      expected.consumed_local_date,
+    ].filter(Boolean);
+    expect(changes.length, "an update expects at least one change").toBeGreaterThan(0);
+
+    if (expected.consumed_local_hours) {
+      const [from, to] = expected.consumed_local_hours;
+      expect(from).toBeLessThan(to);
+      expect(expected.consumed_local_date, "hours need a date").toBeDefined();
+    }
+  });
+
+  it("date moves agree with the date resolver", () => {
+    const moves = cases.filter((c) => c.expected.kind === "update" && c.expected.time_phrase);
+    expect(moves.length).toBeGreaterThan(0);
+    for (const c of moves) {
+      if (c.expected.kind !== "update") continue;
+      const resolved = resolveConsumedAt({
+        timePhrase: c.expected.time_phrase!,
+        modelConsumedAt: null,
+        now: new Date(c.now),
+        timezone: c.timezone,
+      });
+      const instant = new Date(resolved);
+      expect(formatInTimeZone(instant, c.timezone, "yyyy-MM-dd"), c.id).toBe(c.expected.consumed_local_date);
+      if (c.expected.consumed_local_hours) {
+        const hour = Number(formatInTimeZone(instant, c.timezone, "H"));
+        const [from, to] = c.expected.consumed_local_hours;
+        expect(hour, c.id).toBeGreaterThanOrEqual(from);
+        expect(hour, c.id).toBeLessThan(to);
+      }
+    }
+  });
+});
+
+describe("correction cases through the real tools (scripted model)", () => {
+  it("has a scripted call for every case", () => {
+    expect(Object.keys(SCRIPTED_CALLS).sort()).toEqual(cases.map((c) => c.id).sort());
+  });
+
+  it.each(cases.map((c) => [c.id, c] as const))("%s", async (_, c) => {
+    const outcome = await runCorrectionCase(c, scriptedProvider(c));
+
+    // B10 context: every recent meal is listed with its ID, version, and items.
+    for (const meal of c.recent_meals) {
+      expect(fromContext(outcome.context, meal.name), meal.id).toEqual({ meal_id: outcome.mealIds.get(meal.id), version: meal.version });
+      expect(outcome.context).toContain(meal.items[0]!.name);
+    }
+
+    expect(checkCorrection(c, outcome)).toEqual([]);
+  });
+
+  // The checker itself: a model that guesses, or edits the wrong thing, must fail its case.
+  const byId = (id: string) => cases.find((c) => c.id === id)!;
+  it.each([
+    ["c08-ambiguous-remove-cheese", { name: "update_meal", meal: "m-burger", input: { item_changes: [{ food_name: "cheese", remove: true }] } }, "should have asked"],
+    ["c01-remove-the-cheese", { name: "update_meal", meal: "m-sandwich", input: { item_changes: [{ food_name: "bread", remove: true }] } }, "i-cheddar wasn't removed"],
+    ["c03-that-was-lunch-yesterday", { name: "update_meal", meal: "m-bowl", input: { time_phrase: "dinner yesterday" } }, "expected [11, 15)"],
+    ["c07-delete-last-meal", { name: "delete_meal", meal: "m-sandwich", input: {} }, "wrong meal"],
+  ] as const)("flags a wrong outcome for %s", async (id, call, problem) => {
+    const c = byId(id);
+    const outcome = await runCorrectionCase(c, scriptedProvider(c, structuredClone(call) as ScriptedCall));
+    expect(checkCorrection(c, outcome).join("\n")).toContain(problem);
+  });
+});

@@ -3,9 +3,9 @@ import { ApiErrorException } from "@/lib/api-error";
 import { requireUser } from "@/lib/auth/server";
 import { buildDailySummary, todayIn } from "@/lib/database/daily";
 import { getUserTimezone } from "@/lib/database/profile";
-import { localDate, startOfLocalDay, addDays } from "@/lib/database/local-day";
+import { localDate, localDateRange } from "@/lib/database/local-day";
+import { prepareMeal } from "@/lib/database/meal-writes";
 import { findMeals, listMeals, saveMeals, type PreparedMeal } from "@/lib/database/meals";
-import { OversizedItemError, recalculateMeal } from "@/lib/nutrition/recalc";
 import { idempotencyKeySchema, mealsQuerySchema, saveMealsRequestSchema } from "@/lib/validation";
 import { handleRouteError, json, readJson } from "../_lib/route";
 
@@ -26,17 +26,7 @@ export async function POST(request: Request) {
     const body = saveMealsRequestSchema.parse(await readJson(request));
 
     // Never trust client macros or totals: recalculate every meal server-side.
-    const prepared: PreparedMeal[] = body.meals.map((meal, mealIndex) => {
-      try {
-        const { items, totals } = recalculateMeal(meal.items);
-        return { name: meal.name, consumed_at: meal.consumed_at, source_type: meal.source_type, items, totals };
-      } catch (error) {
-        if (!(error instanceof OversizedItemError)) throw error;
-        throw new ApiErrorException("validation_error", {
-          fields: { [`meals.${mealIndex}.items.${error.index}.grams`]: "That amount is too large." },
-        });
-      }
-    });
+    const prepared: PreparedMeal[] = body.meals.map((meal, mealIndex) => prepareMeal(meal, `meals.${mealIndex}.`));
 
     // A retry with the same key writes nothing and returns the meals the first request saved.
     const { replayed, mealIds } = await saveMeals(supabase, key.data, prepared);
@@ -65,9 +55,8 @@ export async function GET(request: Request) {
     const timezone = query.from || query.to ? await getUserTimezone(supabase, user.id) : "UTC";
 
     const page: MealsPage = await listMeals(supabase, {
-      // from/to are local dates in the user's zone; `to` is inclusive, so the bound is the next midnight.
-      from: query.from ? startOfLocalDay(query.from, timezone) : null,
-      to: query.to ? startOfLocalDay(addDays(query.to, 1), timezone) : null,
+      // from/to are local dates in the user's zone.
+      ...localDateRange(query.from, query.to, timezone),
       q: query.q ? query.q : null,
       cursor: query.cursor ?? null,
       limit: query.limit,
