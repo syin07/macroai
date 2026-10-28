@@ -1,11 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { Meal, MealItem, MealProposal } from "@/types/api";
 import { ApiErrorException } from "@/lib/api-error";
+import type { LastMealMatch, MealHistoryResult } from "@/lib/database/history";
 import { itemMacros } from "@/lib/nutrition/calc";
+import { fakeLookup, SKIM_MILK } from "./__fixtures__/chat-fakes";
 import type { MealAnalysis } from "./analyze";
-import { MAX_PROPOSAL_CALLS, newTurnState, runTool, toolDefs, type MealStore, type ToolContext } from "./tools";
+import { MAX_PROPOSAL_CALLS, RECENT_MEALS, newTurnState, runTool, toolDefs, type MealStore, type ToolContext } from "./tools";
 
 const NOW = new Date("2026-10-26T19:00:00Z");
 const RICE = { calories: 130, protein_g: 2.38, carbs_g: 28.59, fat_g: 0.21 };
@@ -81,7 +84,13 @@ function fakeMealStore(initial: Meal[] = []) {
       return { undo_until: new Date(NOW.getTime() + 10_000).toISOString() };
     }),
     dailySummary: vi.fn(),
-    searchMeals: vi.fn(async () => []),
+    recentMeals: vi.fn(async (limit: number) =>
+      [...meals.values()].sort((a, b) => Date.parse(b.consumed_at) - Date.parse(a.consumed_at)).slice(0, limit),
+    ),
+    searchHistory: vi.fn(async (): Promise<MealHistoryResult> => {
+      throw new Error("searchHistory not stubbed");
+    }),
+    lastMatching: vi.fn(async (): Promise<LastMealMatch | null> => null),
   };
   return store satisfies MealStore;
 }
@@ -150,7 +159,11 @@ describe("runTool — argument validation", () => {
     ["an update with nothing to change", "update_meal", { meal_id: randomUUID() }],
     ["a negative amount", "update_meal", { meal_id: randomUUID(), item_changes: [{ food_name: "rice", grams: -5 }] }],
     ["a time without a UTC offset", "update_meal", { meal_id: randomUUID(), consumed_at: "2026-10-26T12:00:00" }],
+    ["a meal_id without the version the model saw", "update_meal", { meal_id: randomUUID(), name: "Lunch" }],
+    ["a scale of zero", "update_meal", { meal_id: randomUUID(), version: 1, scale: 0 }],
     ["a reversed date range", "search_meal_history", { from: "2026-10-20", to: "2026-10-01" }],
+    ["an aggregate without a start date", "search_meal_history", { aggregate: true }],
+    ["a latest match without a food", "search_meal_history", { latest_match: true }],
     ["missing input", "delete_meal", undefined],
   ])("rejects %s without touching the store", async (_label, name, input) => {
     const ctx = context();
@@ -253,7 +266,7 @@ describe("update_meal and delete_meal", () => {
     const store = fakeMealStore([meal]);
     const ctx = context({ meals: store });
     const state = newTurnState();
-    const result = await runTool(call("update_meal", { meal_id: meal.id, item_changes: [{ food_name: "rice", grams: 200 }] }), ctx, state);
+    const result = await runTool(call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "rice", grams: 200 }] }), ctx, state);
 
     expect(result.output).toMatchObject({ status: "updated", version: 2 });
     const patch = store.updateMeal.mock.calls[0]![1];
@@ -270,11 +283,11 @@ describe("update_meal and delete_meal", () => {
     const meal = base();
     const store = fakeMealStore([meal]);
     const ctx = context({ meals: store });
-    await runTool(call("update_meal", { meal_id: meal.id, item_changes: [{ food_name: "rice", remove: true }] }), ctx, newTurnState());
+    await runTool(call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "rice", remove: true }] }), ctx, newTurnState());
     expect(store.updateMeal.mock.calls[0]![1].items!.map((i) => i.food_name)).toEqual(["Grilled chicken"]);
 
     const all = await runTool(
-      call("update_meal", { meal_id: meal.id, item_changes: [{ food_name: "chicken", remove: true }] }),
+      call("update_meal", { meal_id: meal.id, version: 2, item_changes: [{ food_name: "chicken", remove: true }] }),
       ctx,
       newTurnState(),
     );
@@ -284,17 +297,153 @@ describe("update_meal and delete_meal", () => {
   it("asks instead of guessing when a food name matches more than one item", async () => {
     const meal = savedMeal(proposal(), { items: [item({ food_name: "Brown rice" }), item({ food_name: "White rice" })] });
     const ctx = context({ meals: fakeMealStore([meal]) });
-    const result = await runTool(call("update_meal", { meal_id: meal.id, item_changes: [{ food_name: "rice", grams: 100 }] }), ctx, newTurnState());
+    const result = await runTool(call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "rice", grams: 100 }] }), ctx, newTurnState());
     expect(result).toMatchObject({ isError: true, output: { error: expect.stringContaining("ask which one") } });
     expect(ctx.meals!.updateMeal).not.toHaveBeenCalled();
   });
 
-  it("passes a stale version through, and reports the conflict to the model", async () => {
+  it('finds "eggs" in "Egg, scrambled" (plural and word order)', async () => {
+    const meal = savedMeal(proposal(), { items: [item({ food_name: "Egg, scrambled", quantity: 3, unit: "large", grams: 150 }), item()] });
+    const store = fakeMealStore([meal]);
+    const result = await runTool(
+      call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "eggs", quantity: 2 }] }),
+      context({ meals: store }),
+      newTurnState(),
+    );
+    expect(result.isError).toBeFalsy();
+    expect(store.updateMeal.mock.calls[0]![1].items![0]).toMatchObject({ quantity: 2, grams: 100 });
+  });
+
+  it('scales every item for "I only ate half"', async () => {
     const meal = base();
-    const ctx = context({ meals: fakeMealStore([meal]) });
-    const result = await runTool(call("update_meal", { meal_id: meal.id, version: 7, name: "Lunch" }), ctx, newTurnState());
-    expect(result.isError).toBe(true);
-    expect(result.output).toEqual({ error: expect.stringContaining("changed somewhere else") });
+    const store = fakeMealStore([meal]);
+    await runTool(call("update_meal", { meal_id: meal.id, version: 1, scale: 0.5 }), context({ meals: store }), newTurnState());
+    const items = store.updateMeal.mock.calls[0]![1].items!;
+    expect(items.map((i) => i.grams)).toEqual([75, 80]);
+    expect(items[0]!.macros.calories).toBeCloseTo(125, 9); // no basis: scaled
+    expect(items[1]!.macros.calories).toBeCloseTo(104, 9); // basis × 80 g
+    expect(items.every((i) => i.edited_by_user)).toBe(true);
+  });
+
+  it("swaps a food with replace_with: new USDA nutrition at the old amount", async () => {
+    const meal = savedMeal(proposal(), { items: [item({ food_name: "Whole milk", quantity: 1, unit: "cup", grams: 244, basis_per_100g: null, macros: { calories: 149, protein_g: 7.7, carbs_g: 11.7, fat_g: 7.9 } })] });
+    const store = fakeMealStore([meal]);
+    const ctx = context({ meals: store, lookup: fakeLookup([SKIM_MILK]) });
+    const result = await runTool(
+      call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "milk", replace_with: "skim milk", search_query: "milk, nonfat, fluid" }] }),
+      ctx,
+      newTurnState(),
+    );
+    expect(result.isError).toBeFalsy();
+    const milk = store.updateMeal.mock.calls[0]![1].items![0]!;
+    expect(milk).toMatchObject({ food_name: "Skim milk", quantity: 1, unit: "cup", grams: 244, nutrition_source: "usda", source_reference: String(SKIM_MILK.fdcId), basis_per_100g: SKIM_MILK.basis_per_100g, edited_by_user: true });
+    expect(milk.macros.calories).toBeCloseTo(34 * 2.44, 9);
+  });
+
+  it("won't swap to a food the matcher can't find", async () => {
+    const meal = base();
+    const store = fakeMealStore([meal]);
+    const result = await runTool(
+      call("update_meal", { meal_id: meal.id, version: 1, item_changes: [{ food_name: "rice", replace_with: "cauliflower rice" }] }),
+      context({ meals: store }),
+      newTurnState(),
+    );
+    expect(result).toMatchObject({ isError: true, output: { error: expect.stringContaining("Couldn't find nutrition data") } });
+    expect(store.updateMeal).not.toHaveBeenCalled();
+  });
+
+  it("moves the time with the user's words, keeping the time of day for a day-only phrase", async () => {
+    const meal = base(); // 12:00 PDT on Oct 26; NOW is 12:00 PDT on Oct 26
+    const store = fakeMealStore([meal]);
+    const ctx = context({ meals: store });
+    await runTool(call("update_meal", { meal_id: meal.id, version: 1, time_phrase: "yesterday" }), ctx, newTurnState());
+    expect(store.updateMeal.mock.calls[0]![1].consumed_at).toBe("2026-10-25T12:00:00-07:00");
+    await runTool(call("update_meal", { meal_id: meal.id, version: 2, time_phrase: "dinner last tuesday" }), ctx, newTurnState());
+    expect(store.updateMeal.mock.calls[1]![1].consumed_at).toBe("2026-10-20T19:00:00-07:00");
+
+    const unknown = await runTool(call("update_meal", { meal_id: meal.id, version: 3, time_phrase: "sometime" }), ctx, newTurnState());
+    expect(unknown).toMatchObject({ isError: true, output: { error: expect.stringContaining("Ask the user") } });
+    const future = await runTool(call("update_meal", { meal_id: meal.id, version: 3, consumed_at: "2026-10-27T12:00:00-07:00" }), ctx, newTurnState());
+    expect(future.isError).toBe(true);
+    expect(store.updateMeal).toHaveBeenCalledTimes(2);
+  });
+
+  describe("PRD 12.14: versions", () => {
+    it("a stale version writes nothing and hands the model the meal as it is now", async () => {
+      const meal = { ...base(), version: 3, name: "Renamed by the user" };
+      const store = fakeMealStore([meal]);
+      const result = await runTool(call("update_meal", { meal_id: meal.id, version: 2, name: "Lunch" }), context({ meals: store }), newTurnState());
+      expect(result.isError).toBe(true);
+      expect(result.output).toMatchObject({
+        error: expect.stringContaining("now version 3"),
+        current_meal: { meal_id: meal.id, version: 3, name: "Renamed by the user" },
+      });
+      expect(store.updateMeal).not.toHaveBeenCalled();
+    });
+
+    it("an edit that lands between the read and the write is re-read and reported, not retried", async () => {
+      const meal = base();
+      const store = fakeMealStore([meal]);
+      store.updateMeal.mockImplementationOnce(async () => {
+        store.getMeal.mockResolvedValueOnce({ ...meal, version: 2, name: "Edited in the app" });
+        throw new ApiErrorException("version_conflict");
+      });
+      const state = newTurnState();
+      const result = await runTool(call("update_meal", { meal_id: meal.id, version: 1, name: "Lunch" }), context({ meals: store }), state);
+      expect(result.output).toMatchObject({ error: expect.stringContaining("now version 2"), current_meal: { version: 2, name: "Edited in the app" } });
+      expect(store.updateMeal).toHaveBeenCalledTimes(1);
+      expect(state.cards).toEqual([]);
+    });
+
+    it("a meal deleted in the meantime is reported as deleted", async () => {
+      const meal = base();
+      const store = fakeMealStore([meal]);
+      store.updateMeal.mockImplementationOnce(async () => {
+        store.getMeal.mockResolvedValueOnce(null);
+        throw new ApiErrorException("version_conflict");
+      });
+      const result = await runTool(call("update_meal", { meal_id: meal.id, version: 1, name: "Lunch" }), context({ meals: store }), newTurnState());
+      expect(result.output).toEqual({ error: "That meal was deleted, so nothing was changed." });
+    });
+  });
+
+  describe("PRD 12.5: no meal_id", () => {
+    const cheese = (name: string) => item({ food_name: name, basis_per_100g: null, grams: 28, quantity: 1, unit: "slice", macros: { calories: 113, protein_g: 7, carbs_g: 0.4, fat_g: 9.3 } });
+    const burger = () => savedMeal(proposal("Cheeseburger", { consumed_at: "2026-10-26T12:15:00-07:00" }), { items: [item({ food_name: "Hamburger bun" }), cheese("American cheese")] });
+    const omelette = () => savedMeal(proposal("Cheese omelette", { consumed_at: "2026-10-26T08:00:00-07:00" }), { items: [item({ food_name: "Egg" }), cheese("Cheddar cheese")], version: 2 });
+
+    it("updates the one recent meal that has the item", async () => {
+      const target = burger();
+      const store = fakeMealStore([target, savedMeal(proposal("Oatmeal"), { consumed_at: "2026-10-26T07:00:00-07:00" })]);
+      const result = await runTool(call("update_meal", { item_changes: [{ food_name: "cheese", remove: true }] }), context({ meals: store }), newTurnState());
+      expect(result.output).toMatchObject({ status: "updated", meal_id: target.id });
+      expect(store.recentMeals).toHaveBeenCalledWith(RECENT_MEALS);
+      expect(store.updateMeal.mock.calls[0]![1]).toMatchObject({ version: 1 });
+    });
+
+    it("returns candidates instead of guessing when several recent meals have it, and writes nothing", async () => {
+      const [a, b] = [burger(), omelette()];
+      const store = fakeMealStore([a, b]);
+      const state = newTurnState();
+      const result = await runTool(call("update_meal", { item_changes: [{ food_name: "cheese", remove: true }] }), context({ meals: store }), state);
+      expect(result.isError).toBeFalsy();
+      expect(result.output).toMatchObject({
+        status: "needs_clarification",
+        candidates: [
+          { meal_id: a.id, version: 1, name: "Cheeseburger", consumed_at: "2026-10-26T12:15:00-07:00", matching_items: ["American cheese"] },
+          { meal_id: b.id, version: 2, name: "Cheese omelette", matching_items: ["Cheddar cheese"] },
+        ],
+      });
+      expect(store.updateMeal).not.toHaveBeenCalled();
+      expect(state.cards).toEqual([]);
+      expect(state.mealChanged).toBe(false);
+    });
+
+    it("errors when no recent meal has the item", async () => {
+      const store = fakeMealStore([burger()]);
+      const result = await runTool(call("update_meal", { item_changes: [{ food_name: "salmon", remove: true }] }), context({ meals: store }), newTurnState());
+      expect(result).toMatchObject({ isError: true, output: { error: expect.stringContaining("Ask the user which meal") } });
+    });
   });
 
   it("delete_meal adds a deleted (null) meal card and reports the undo window", async () => {
@@ -310,5 +459,102 @@ describe("update_meal and delete_meal", () => {
   it("can't touch a meal the store doesn't return (another user's, or deleted)", async () => {
     const result = await runTool(call("delete_meal", { meal_id: randomUUID() }), context(), newTurnState());
     expect(result).toMatchObject({ isError: true, output: { error: "No saved meal with that ID." } });
+  });
+});
+
+describe("search_meal_history (B11)", () => {
+  const historyResult = (overrides: Partial<MealHistoryResult> = {}): MealHistoryResult => ({
+    timezone: "America/Los_Angeles",
+    today: "2026-10-26",
+    from: "2026-10-20",
+    to: "2026-10-26",
+    q: null,
+    meals: [{ id: randomUUID(), name: "Dinner", consumed_at: "2026-10-26T02:00:00Z", local_date: "2026-10-25", totals: { calories: 700.4, protein_g: 40.6, carbs_g: 50, fat_g: 20 } }],
+    has_more: false,
+    aggregate: null,
+    ...overrides,
+  });
+
+  it("passes the session's zone and clock, never a user from the model", async () => {
+    const store = fakeMealStore();
+    store.searchHistory.mockResolvedValueOnce(historyResult());
+    const ctx = context({ meals: store });
+    const result = await runTool(call("search_meal_history", { from: "2026-10-20", query: "dinner" }), ctx, newTurnState());
+    expect(store.searchHistory).toHaveBeenCalledWith(
+      { from: "2026-10-20", to: undefined, q: "dinner", limit: 10, aggregate: undefined },
+      { timezone: "America/Los_Angeles", now: NOW },
+    );
+    expect(result.output).toEqual({
+      today: "2026-10-26",
+      meals: [{ meal_id: expect.any(String), name: "Dinner", local_date: "2026-10-25", consumed_at: "2026-10-25T19:00:00-07:00", totals: { calories: 700, protein_g: 41, carbs_g: 50, fat_g: 20 } }],
+      has_more: false,
+    });
+  });
+
+  it("aggregate: per recorded day, with the counts, missing dates, and today flagged as partial", async () => {
+    const store = fakeMealStore();
+    store.searchHistory.mockResolvedValueOnce(
+      historyResult({
+        aggregate: {
+          from: "2026-10-20",
+          to: "2026-10-26",
+          days_in_range: 7,
+          days_with_records: 2,
+          missing_dates: ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24"],
+          sum: { calories: 3000, protein_g: 200, carbs_g: 300, fat_g: 100 },
+          average_per_recorded_day: { calories: 1500, protein_g: 100, carbs_g: 150, fat_g: 50 },
+          days: [
+            { date: "2026-10-25", meal_count: 2, totals: { calories: 2000, protein_g: 120, carbs_g: 200, fat_g: 60 } },
+            { date: "2026-10-26", meal_count: 1, totals: { calories: 1000, protein_g: 80, carbs_g: 100, fat_g: 40 } },
+          ],
+          includes_today: true,
+          to_clamped_to_today: true,
+        },
+      }),
+    );
+    const result = await runTool(call("search_meal_history", { from: "2026-10-20", aggregate: true }), context({ meals: store }), newTurnState());
+    expect(result.output).toMatchObject({
+      aggregate: {
+        days_in_range: 7,
+        days_with_records: 2,
+        missing_dates: ["2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24"],
+        includes_today: true,
+        average_per_recorded_day: { calories: 1500, protein_g: 100 },
+        days: [{ date: "2026-10-25", meals: 2 }, { date: "2026-10-26", meals: 1 }],
+      },
+    });
+    expect(result.output).not.toHaveProperty("aggregate.note");
+  });
+
+  it("aggregate with no records: a null average and a note, never a zero", async () => {
+    const store = fakeMealStore();
+    store.searchHistory.mockResolvedValueOnce(
+      historyResult({
+        meals: [],
+        aggregate: { from: "2026-10-01", to: "2026-10-02", days_in_range: 2, days_with_records: 0, missing_dates: ["2026-10-01", "2026-10-02"], sum: { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 }, average_per_recorded_day: null, days: [], includes_today: false, to_clamped_to_today: false },
+      }),
+    );
+    const result = await runTool(call("search_meal_history", { from: "2026-10-01", to: "2026-10-02", aggregate: true }), context({ meals: store }), newTurnState());
+    expect(result.output).toMatchObject({ aggregate: { average_per_recorded_day: null, note: expect.stringContaining("No records") } });
+  });
+
+  it("latest_match: 'when did I last have salmon' uses findLastMealMatching, bounded by to", async () => {
+    const store = fakeMealStore();
+    const meal = savedMeal(proposal("Salmon bowl"));
+    store.lastMatching.mockResolvedValueOnce({ meal, local_date: "2026-10-21", days_ago: 5, matched_items: ["Salmon, baked"] });
+    const result = await runTool(call("search_meal_history", { query: "salmon", latest_match: true, to: "2026-10-25" }), context({ meals: store }), newTurnState());
+    expect(store.lastMatching).toHaveBeenCalledWith({ q: "salmon", before: "2026-10-25" }, { timezone: "America/Los_Angeles", now: NOW });
+    expect(store.searchHistory).not.toHaveBeenCalled();
+    expect(result.output).toMatchObject({ latest_match: { local_date: "2026-10-21", days_ago: 5, matched_items: ["Salmon, baked"], meal: { meal_id: meal.id, name: "Salmon bowl" } } });
+
+    const none = await runTool(call("search_meal_history", { query: "salmon", latest_match: true }), context({ meals: store }), newTurnState());
+    expect(none.output).toMatchObject({ latest_match: null });
+  });
+
+  it("reports a data-layer range error as invalid arguments", async () => {
+    const store = fakeMealStore();
+    store.searchHistory.mockRejectedValueOnce(new z.ZodError([{ code: "custom", path: ["to"], message: "Aggregate ranges are limited to 366 days", input: undefined }]));
+    const result = await runTool(call("search_meal_history", { from: "2024-01-01", aggregate: true }), context({ meals: store }), newTurnState());
+    expect(result).toMatchObject({ isError: true, output: { error: "Invalid arguments: to: Aggregate ranges are limited to 366 days" } });
   });
 });

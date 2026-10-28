@@ -1,4 +1,5 @@
 import { vi, type Mock } from "vitest";
+import type { NutritionLookup, UsdaFood } from "@/lib/nutrition/usda";
 import type { ExtractedFood, ExtractedMeal, ExtractionResult } from "../extraction";
 import type { AIProvider, ChatInput, ExtractMealInput, ProviderTurn, ToolCall } from "../provider";
 
@@ -58,6 +59,19 @@ export function fakeProvider(script: ScriptStep[] = [], extractions: ExtractionR
 export function lastToolOutputs(input: ChatInput): unknown[] {
   const last = input.messages.at(-1);
   return last?.role === "tool" ? last.results.map((r) => r.output) : [];
+}
+
+// --- Nutrition lookup -----------------------------------------------------------------------------
+
+export { SKIM_MILK } from "./foods";
+
+// A USDA stand-in with a fixed food list: every search returns all of them, and B5's matcher ranks
+// and rejects them exactly as it does real results.
+export function fakeLookup(foods: readonly UsdaFood[]): NutritionLookup {
+  return {
+    searchFoods: vi.fn(async () => foods.map((food) => ({ ...food, portions: [] }))),
+    getFood: vi.fn(async (fdcId: number) => foods.find((food) => food.fdcId === fdcId) ?? null),
+  };
 }
 
 // --- Extraction builders --------------------------------------------------------------------------

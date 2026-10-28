@@ -306,3 +306,22 @@ describe("resolveConsumedAt: the model's ISO timestamp as fallback", () => {
     expect(resolve(null, SUNDAY_9PM, LA, "2026-10-25T22:00:00-07:00")).toBe("2026-10-25T21:00:00-07:00");
   });
 });
+
+describe("parseTimePhrase: clockFrom (corrections keep the meal's own time)", () => {
+  const lunch = new Date("2026-10-25T12:10:00-07:00");
+  const at = (phrase: string, now: Date, clockFrom: Date) => parseTimePhrase(phrase, now, LA, { clockFrom })!.toISOString();
+
+  it.each([
+    ["yesterday", "2026-10-24T12:10:00-07:00"],
+    ["2 days ago", "2026-10-23T12:10:00-07:00"],
+    ["last Tuesday", "2026-10-20T12:10:00-07:00"],
+    ["today", "2026-10-25T12:10:00-07:00"],
+  ])("%s keeps 12:10", (phrase, expected) => {
+    expect(at(phrase, SUNDAY_9PM, lunch)).toBe(new Date(expected).toISOString());
+  });
+
+  it("a named time still wins, and the kept time never lands in the future", () => {
+    expect(at("lunch yesterday", SUNDAY_9PM, lunch)).toBe(new Date("2026-10-24T12:30:00-07:00").toISOString());
+    expect(at("today", SUNDAY_9AM, new Date("2026-10-24T19:00:00-07:00"))).toBe(SUNDAY_9AM.toISOString());
+  });
+});

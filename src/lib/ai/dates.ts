@@ -226,9 +226,21 @@ function latestBefore(candidates: Date[], limit: number): Date | null {
   return best;
 }
 
+export interface ParseTimeOptions {
+  // For a day named without a time ("that was yesterday"), keep this instant's local clock time
+  // instead of now's. Corrections pass the meal's current consumed_at, so moving a meal to another day
+  // keeps the time it was eaten. The result is still never later than `now`.
+  clockFrom?: Date;
+}
+
 // The user's time words → an instant, or null if the phrase names no time we understand.
 // The result is never later than `now`.
-export function parseTimePhrase(phrase: string | null, now: Date, timezone: string): Date | null {
+export function parseTimePhrase(
+  phrase: string | null,
+  now: Date,
+  timezone: string,
+  options: ParseTimeOptions = {},
+): Date | null {
   const text = phrase?.toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, " ").trim();
   if (!text) return null;
 
@@ -249,7 +261,13 @@ export function parseTimePhrase(phrase: string | null, now: Date, timezone: stri
   const at = (offset: number, hour: number, minute: number) => atLocalTime(addDays(today, offset), hour, minute, timezone);
 
   if (clock === null) {
-    // A day without a time: now if it's today, else the same local clock time as now on that day.
+    // A day without a time: now if it's today, else the same local clock time as now on that day
+    // (or as options.clockFrom, when given).
+    if (options.clockFrom) {
+      const [hour, minute] = localClock(options.clockFrom, timezone);
+      const kept = at(day!.offset, hour, minute);
+      return kept.getTime() > now.getTime() ? now : kept;
+    }
     if (day!.offset === 0) return now;
     const [hour, minute] = localClock(now, timezone);
     return at(day!.offset, hour, minute);

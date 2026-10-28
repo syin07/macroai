@@ -3,7 +3,7 @@ import type { Meal, MealSourceType } from "@/types/api";
 import { ApiErrorException } from "@/lib/api-error";
 import { buildDailySummary, todayIn } from "@/lib/database/daily";
 import { DatabaseError } from "@/lib/database/errors";
-import { localDateRange } from "@/lib/database/local-day";
+import { findLastMealMatching, searchMealHistory } from "@/lib/database/history";
 import { editMeal, prepareMeal } from "@/lib/database/meal-writes";
 import { deleteMeal, findMeal, findMeals, listMeals, saveMeals } from "@/lib/database/meals";
 import type { MealStore } from "./tools";
@@ -53,9 +53,17 @@ export function createMealStore(
 
     dailySummary: (date) => buildDailySummary(supabase, userId, date ?? todayIn(timezone, now()), timezone),
 
-    async searchMeals({ from, to, q, limit }) {
-      const page = await listMeals(supabase, { ...localDateRange(from, to, timezone), q: q ?? null, cursor: null, limit });
-      return page.meals;
+    // The newest meals by consumed_at, with their items: what B10's context shows for corrections.
+    async recentMeals(limit) {
+      const page = await listMeals(supabase, { from: null, to: null, q: null, cursor: null, limit });
+      return findMeals(supabase, userId, page.meals.map((meal) => meal.id));
     },
+
+    // B11 history (database/history.ts). The zone and clock are the session's, passed in by the tool.
+    searchHistory: (options, session) =>
+      searchMealHistory(supabase, userId, { ...options, timezone: session.timezone }, session.now),
+
+    lastMatching: (options, session) =>
+      findLastMealMatching(supabase, userId, { ...options, timezone: session.timezone }, session.now),
   };
 }

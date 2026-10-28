@@ -2,9 +2,13 @@ import { formatInTimeZone } from "date-fns-tz";
 import { describe, expect, it } from "vitest";
 import { resolveConsumedAt } from "@/lib/ai/dates";
 import { loadCorrectionCases, type CorrectionCase } from "./cases";
+import { SCRIPTED_CALLS, checkCorrection, fromContext, runCorrectionCase, scriptedProvider, type ScriptedCall } from "./corrections";
 
-// correction-cases.jsonl is data for the B10 chat runner (which needs B8's tools). Until then, check
-// that every case is well-formed and its expectation refers to things that exist in its own fixture.
+// B10 correction cases (correction-cases.jsonl). First, every case must be well-formed and its
+// expectation must refer to things in its own fixture. Then each case runs through the real chat turn
+// and tools (lib/corrections.ts) with a scripted model that makes the call a good model would, and the
+// saved meals are checked against the expectation. No model, no keys: this is the CI half of the eval;
+// run-corrections.ts runs the same cases against a real model.
 const cases = await loadCorrectionCases();
 
 const REQUIRED_INPUTS = [
@@ -100,5 +104,36 @@ describe("correction-cases.jsonl", () => {
         expect(hour, c.id).toBeLessThan(to);
       }
     }
+  });
+});
+
+describe("correction cases through the real tools (scripted model)", () => {
+  it("has a scripted call for every case", () => {
+    expect(Object.keys(SCRIPTED_CALLS).sort()).toEqual(cases.map((c) => c.id).sort());
+  });
+
+  it.each(cases.map((c) => [c.id, c] as const))("%s", async (_, c) => {
+    const outcome = await runCorrectionCase(c, scriptedProvider(c));
+
+    // B10 context: every recent meal is listed with its ID, version, and items.
+    for (const meal of c.recent_meals) {
+      expect(fromContext(outcome.context, meal.name), meal.id).toEqual({ meal_id: outcome.mealIds.get(meal.id), version: meal.version });
+      expect(outcome.context).toContain(meal.items[0]!.name);
+    }
+
+    expect(checkCorrection(c, outcome)).toEqual([]);
+  });
+
+  // The checker itself: a model that guesses, or edits the wrong thing, must fail its case.
+  const byId = (id: string) => cases.find((c) => c.id === id)!;
+  it.each([
+    ["c08-ambiguous-remove-cheese", { name: "update_meal", meal: "m-burger", input: { item_changes: [{ food_name: "cheese", remove: true }] } }, "should have asked"],
+    ["c01-remove-the-cheese", { name: "update_meal", meal: "m-sandwich", input: { item_changes: [{ food_name: "bread", remove: true }] } }, "i-cheddar wasn't removed"],
+    ["c03-that-was-lunch-yesterday", { name: "update_meal", meal: "m-bowl", input: { time_phrase: "dinner yesterday" } }, "expected [11, 15)"],
+    ["c07-delete-last-meal", { name: "delete_meal", meal: "m-sandwich", input: {} }, "wrong meal"],
+  ] as const)("flags a wrong outcome for %s", async (id, call, problem) => {
+    const c = byId(id);
+    const outcome = await runCorrectionCase(c, scriptedProvider(c, structuredClone(call) as ScriptedCall));
+    expect(checkCorrection(c, outcome).join("\n")).toContain(problem);
   });
 });

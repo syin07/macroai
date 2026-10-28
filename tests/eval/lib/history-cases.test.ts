@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
+import { createMealStore } from "@/lib/ai/meal-store";
+import { newTurnState, runTool, type ToolContext } from "@/lib/ai/tools";
 import { createFakeDb, fakeClient } from "@/lib/database/__fixtures__/fake-db";
 import { seedMeals } from "@/lib/database/__fixtures__/history-seed";
 import { findLastMealMatching, searchMealHistory } from "@/lib/database/history";
@@ -141,5 +143,98 @@ describe("history-cases.jsonl", () => {
     if (expected.sum) expectMacrosClose({ ...agg!.sum }, expected.sum);
     if (expected.average_per_recorded_day === null) expect(agg!.average_per_recorded_day).toBeNull();
     else if (expected.average_per_recorded_day) expectMacrosClose({ ...agg!.average_per_recorded_day! }, expected.average_per_recorded_day);
+  });
+});
+
+// The same cases through the chat tool the model calls (B8's search_meal_history, wired to the
+// functions above through createMealStore), so the tool's arguments and output stay in step with the
+// data layer. The tool rounds numbers for display, so macros are checked to within 0.5.
+function toolArgs(testCase: HistoryCase): Record<string, unknown> {
+  if (testCase.call.fn === "findLastMealMatching") {
+    return { query: testCase.call.args.q, latest_match: true, ...(testCase.call.args.before ? { to: testCase.call.args.before } : {}) };
+  }
+  const { q, ...rest } = testCase.call.args;
+  return { ...rest, ...(q ? { query: q } : {}) };
+}
+
+function expectRounded(actual: Record<string, number> | null | undefined, expected: Record<string, number | undefined>) {
+  expect(actual).toBeTruthy();
+  for (const [key, value] of Object.entries(expected)) {
+    if (value !== undefined) expect(Math.abs(actual![key]! - value), key).toBeLessThanOrEqual(0.5);
+  }
+}
+
+interface ToolHistoryOutput {
+  meals?: Array<{ name: string }>;
+  aggregate?: {
+    to: string;
+    days_in_range: number;
+    days_with_records: number;
+    missing_dates: string[];
+    includes_today: boolean;
+    sum: Record<string, number>;
+    average_per_recorded_day: Record<string, number> | null;
+    note?: string;
+  };
+  latest_match?: { local_date: string; days_ago: number; matched_items: string[]; meal: { name: string; totals: Record<string, number> } } | null;
+}
+
+describe("history-cases.jsonl through the search_meal_history tool", () => {
+  it.each(cases.map((c) => [c.id, c] as const))("%s", async (_id, testCase) => {
+    const db = createFakeDb();
+    db.profiles.push({ id: USER, timezone: testCase.timezone });
+    seedMeals(db, USER, testCase.meals);
+    const supabase = fakeClient(db, { userId: USER });
+    const now = new Date(testCase.now);
+    const ctx: ToolContext = {
+      userId: USER,
+      supabase,
+      now,
+      timezone: testCase.timezone,
+      saveMode: "confirm",
+      analyze: async () => {
+        throw new Error("not used");
+      },
+      lookup: { searchFoods: async () => [], getFood: async () => null },
+      meals: createMealStore(supabase, USER, testCase.timezone, () => now),
+      memory: null,
+      priorProposals: new Map(),
+    };
+    const result = await runTool({ id: "call_1", name: "search_meal_history", input: toolArgs(testCase) }, ctx, newTurnState());
+    expect(result.isError, JSON.stringify(result.output)).toBeFalsy();
+    const output = result.output as ToolHistoryOutput;
+    const expected = testCase.expect;
+
+    if (testCase.call.fn === "findLastMealMatching") {
+      if (expected.last_match === null) expect(output.latest_match).toBeNull();
+      if (!expected.last_match) return;
+      expect(output.latest_match).toMatchObject({
+        local_date: expected.last_match.local_date,
+        days_ago: expected.last_match.days_ago,
+        matched_items: expected.last_match.matched_items,
+        meal: { name: expected.last_match.meal_name },
+      });
+      if (expected.last_match.totals) expectRounded(output.latest_match!.meal.totals, expected.last_match.totals);
+      return;
+    }
+
+    if (expected.meal_names) expect(output.meals!.map((meal) => meal.name)).toEqual(expected.meal_names.slice(0, 10));
+    const agg = output.aggregate;
+    if (!agg) {
+      expect(Object.keys(expected).filter((key) => key !== "meal_names" && key !== "to")).toEqual([]);
+      return;
+    }
+    if (expected.to) expect(agg.to).toBe(expected.to);
+    if (expected.days_in_range !== undefined) expect(agg.days_in_range).toBe(expected.days_in_range);
+    if (expected.days_with_records !== undefined) expect(agg.days_with_records).toBe(expected.days_with_records);
+    if (expected.missing_dates) expect(agg.missing_dates).toEqual(expected.missing_dates);
+    if (expected.includes_today !== undefined) expect(agg.includes_today).toBe(expected.includes_today);
+    if (expected.sum) expectRounded(agg.sum, expected.sum);
+    if (expected.average_per_recorded_day === null) {
+      expect(agg.average_per_recorded_day).toBeNull();
+      expect(agg.note).toContain("No records");
+    } else if (expected.average_per_recorded_day) {
+      expectRounded(agg.average_per_recorded_day, expected.average_per_recorded_day);
+    }
   });
 });
