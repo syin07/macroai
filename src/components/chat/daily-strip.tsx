@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useDaily, useMeal } from "@/hooks/use-api";
-import { MealEditor } from "@/components/meals/meal-editor";
+import { MealEditor } from "@/components/meals/lazy-meal-editor";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 const fields = [
   ["Protein", "protein_g", "P"],
@@ -98,9 +99,11 @@ export function DailyStrip() {
   return (
     <div className="shrink-0 border-b border-[var(--app-line)] px-5 py-2 sm:px-8">
       {daily.isPending ? (
-        <p role="status" className="py-3 text-sm text-muted-foreground">
-          Loading today’s totals…
-        </p>
+        <LoadingSkeleton
+          label="Loading today’s totals…"
+          kind="summary"
+          className="mx-auto max-w-2xl"
+        />
       ) : !summary ? (
         <div className="flex items-center justify-between gap-2 text-sm">
           <p>Today’s totals couldn’t load.</p>

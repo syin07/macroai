@@ -3,6 +3,7 @@ import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useMe } from "@/hooks/use-api";
 import { action } from "@/components/settings/settings-shared";
+import { AppLoadingScreen } from "@/components/shared/app-loading-screen";
 
 /** Runs only inside authenticated app routes, never public auth/preview pages. */
 export function OnboardingGate({ children }: { children: ReactNode }) {
@@ -19,7 +20,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (destination) router.replace(destination);
   }, [destination, router]);
-  if (!me.data || destination)
+  if ((!me.data && !me.isError) || destination) return <AppLoadingScreen />;
+  if (!me.data)
     return (
       <main className="mx-auto max-w-lg px-5 py-16">
         {me.isError && !me.data ? (
@@ -31,9 +33,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
               Retry account
             </button>
           </div>
-        ) : (
-          <p role="status">Getting your account ready…</p>
-        )}
+        ) : null}
       </main>
     );
   return children;

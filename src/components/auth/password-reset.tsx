@@ -6,13 +6,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import {
-  authClient,
-  authError,
-  authPreviewEnabled,
-  type AuthUiError,
-} from "@/lib/api/auth";
+import { authClient, authError, type AuthUiError } from "@/lib/api/auth";
 import { newPasswordSchema, resetRequestSchema } from "./schemas";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import {
   AuthErrorNotice,
   AuthField,
@@ -61,7 +57,7 @@ export function RequestPasswordReset() {
           aria-busy={form.formState.isSubmitting}
         >
           <fieldset
-            disabled={form.formState.isSubmitting || !authPreviewEnabled()}
+            disabled={form.formState.isSubmitting}
             className="min-w-0 space-y-4"
           >
             <AuthField
@@ -94,7 +90,6 @@ export function SetNewPassword() {
   const session = useQuery({
     queryKey: ["auth", "recovery"],
     queryFn: () => authClient.getSession(),
-    enabled: authPreviewEnabled(),
     retry: false,
     gcTime: 0,
   });
@@ -116,14 +111,12 @@ export function SetNewPassword() {
   return (
     <>
       <AuthNotice />
-      {!authPreviewEnabled() ? null : saved ? (
+      {saved ? (
         <AuthSuccess title="Password updated">
           <p>You can now sign in with your new password.</p>
         </AuthSuccess>
       ) : session.isPending ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Checking reset link…
-        </p>
+        <LoadingSkeleton label="Checking reset link…" rows={2} />
       ) : session.error ? (
         <AuthErrorNotice
           error={authError(session.error)}

@@ -23,8 +23,9 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. The initial scaffold redirects to `/chat` and follows
-the system theme. Vercel project setup and environment variables are managed by Sandy.
+Open http://localhost:3000. Signed-out users are sent to sign-in; approved users
+complete onboarding before Chat. Configure the public Supabase settings from
+`.env.example` for real authentication. Sandy manages Vercel and its environment variables.
 
 Before opening a PR, run `npm run lint`, `npm run typecheck`, `npm test`, and
 `npm run build`. Vitest runs `src/**/*.test.ts` and `src/**/*.test.tsx` in Node by
@@ -37,17 +38,17 @@ do not create local copies.
 
 ## API development and mocks
 
-Set `NEXT_PUBLIC_USE_MOCKS=1` in `.env.local`, restart `npm run dev`, and open
-`/dev/api` to exercise the endpoints, fixtures, error responses, and pagination.
-This playground is unavailable in production and when mock mode is off. Mock
-state is held in memory and resets on reload; photos are never persisted.
-AI fixture responses take 600–1,500 ms. The fixture scenarios are examples,
-not an AI model or nutrition service.
+`npm test` exercises the in-memory API/auth fixtures, errors, pagination, and UI
+flows without live accounts. A15 removes the `/dev/*` and `/auth/*-preview`
+scratch routes and their controls. Those pages are no longer part of the app.
 
 Components call `src/lib/api/` or the hooks in `src/hooks/use-api.ts`; all network
 requests go through the shared client. During integration, pass `{ mock: false }`
 to an endpoint wrapper to use the real API while keeping other calls mocked.
-Turn off mock mode for production once the backend is ready.
+`NEXT_PUBLIC_USE_MOCKS=1` is available only outside production. Production ignores
+both that flag and a per-call `{ mock: true }` override. Mocks create no real
+session and never bypass the server's account/approval checks. Use real approved
+Supabase accounts for app-route integration testing.
 
 Create a chat draft with `createChatDraft()` and a save action with
 `createSaveAction()`. Keep that object after a failed request and pass it back
@@ -55,27 +56,22 @@ to `sendChat()` or `saveMeals()` on retry so its identifier stays unchanged.
 The query hooks copy the returned daily summaries into the cache and cancel
 older daily requests that could otherwise overwrite them.
 
-## Auth UI previews (H2 pending)
+## Authentication and integration
 
-With mock mode enabled, open `/dev/auth` for sign-in, sign-up, unapproved-account,
-network-error, and password-recovery scenarios. Use made-up credentials. These
-stubs create no accounts, send no email, and retain only session metadata in
-memory. Passwords and recovery tokens are never persisted. Both development
-playgrounds return 404 in production.
+The frontend boundary `src/lib/api/auth.ts` delegates to Sandy's helpers in
+`src/lib/auth/client.ts` outside explicit development mocks. OAuth, email/password,
+sign-up, reset email, session inspection, password update and sign-out are wired.
+`?mode=update` selects the reset form; a verified recovery session is rechecked
+before a password update. Successful sign-in/sign-out clears old private query data.
 
-The frontend boundary is `src/lib/api/auth.ts`. Until Sandy's H2 helpers land,
-production authentication stays unavailable even if mock mode is enabled.
-H2 integration must delegate to `src/lib/auth/client.ts`, verify the user and
-approval through the real session/server, and use a verified recovery session
-from the email callback. `?mode=update` selects the reset form; it never authorizes
-a password change. Real OAuth, email delivery, approval enforcement, and session
-persistence still need integration testing after H2.
+Real OAuth, email delivery, account approval, session persistence and cross-account
+isolation still need deployment testing. Chat send/photo/history endpoints are
+Sandy's remaining H4/H5/H7 integration work. See the line-by-line
+[release checklist](docs/release-checklist.md) for evidence and outstanding checks.
 
-## Meal card previews
+## Meal editing
 
-With mock mode enabled, `/dev/meals` previews single/multiple proposals, photo
-assumptions, clarification, saved, discarded, and deleted cards. It includes a
-save-failure/retry scenario and returns 404 in production. Unsaved proposal edits,
+Unsaved proposal edits,
 discard state, and pending retry actions live only in the private browser-memory
 query cache; navigation preserves them, while reload/sign-out clears them. The
 current API has no route to persist a discarded proposal across devices.
@@ -86,13 +82,9 @@ Database portions use the shared calculator. Explicit overrides become Manual;
 new foods need portion totals or label values per 100 g. Saves use server-returned
 nutrition totals. Save all still sends one request with one retained key.
 
-After H2's default-deny proxy, the mock-only preview is also available at
-`/auth/meal-editor-preview`. It is a public development page, not an authenticated
-app session, and returns 404 in production or when mock mode is off. The proxy
-still needs the public Supabase settings from `.env.example`; backend auth rules
-are unchanged. The preview's saved card uses a real in-memory record, and
-"Change saved meal elsewhere" exercises version conflicts. A conflict fetches the
-latest meal but keeps edits until the user explicitly loads it and saves again.
+A version conflict fetches the latest meal but keeps edits until the user
+explicitly loads it and saves again. The editor and manual-entry form load on
+demand, keeping their code out of the initial conversation screen.
 
 ## Project documentation
 

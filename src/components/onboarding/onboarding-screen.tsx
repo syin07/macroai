@@ -14,6 +14,7 @@ import { putGoalsRequestSchema } from "@/lib/validation/goals";
 import { patchPreferencesRequestSchema } from "@/lib/validation/preferences";
 import { GoalCalculator } from "@/components/goals/goal-calculator";
 import { PageFrame } from "@/components/shared/page-frame";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { action, control } from "@/components/settings/settings-shared";
 import type { Macros, Preferences } from "@/types/api";
 
@@ -60,7 +61,10 @@ export function OnboardingScreen({ onFinished }: { onFinished?: () => void }) {
             </button>
           </div>
         ) : (
-          <p role="status">Loading your setup…</p>
+          <LoadingSkeleton
+            label="Loading your setup…"
+            className="mx-auto max-w-lg"
+          />
         )}
       </div>
     </PageFrame>

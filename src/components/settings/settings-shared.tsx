@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 export const control =
   "min-h-11 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] sm:text-sm";
@@ -38,12 +39,7 @@ export function QueryNotice({
   retry: () => void;
 }) {
   return pending ? (
-    <p
-      role="status"
-      className="min-h-24 rounded-xl bg-[var(--app-surface)] p-4 text-sm text-muted-foreground"
-    >
-      Loading…
-    </p>
+    <LoadingSkeleton label="Loading…" className="min-h-48 py-3" />
   ) : error ? (
     <p role="alert" className="text-sm">
       This section couldn’t load.{" "}

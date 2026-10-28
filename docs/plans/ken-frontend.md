@@ -196,6 +196,8 @@ A14 implementation is on `ken/a14-insights`, pending review/merge. Insights disc
 - [ ] Remove the scratch pages; mock mode off in production.
 - [ ] Release checklist with Sandy: PRD §19 Definition of Done, line by line.
 
+A15 local implementation is on `ken/a15-release-polish`, pending review/merge. Adds shared reduced-motion-safe loading skeletons, an app loading/error fallback, route-change focus management, global focus rings, stronger light-theme text contrast, and on-demand editor/manual-entry code. All auth operations now delegate to Sandy's helpers outside development mocks; password updates recheck a verified recovery session. The API client ignores both the mock flag and per-call mock overrides in production. All ten scratch routes and ten preview components are removed. `docs/release-checklist.md` maps every PRD §19 criterion to local evidence or an explicit live/backend prerequisite. Ken confirmed no deployment is available and requested completion of local work only. Real iPhone Safari/PWA and Android checks, authenticated `/chat` Lighthouse scores, joint release sign-off, and live account/API verification remain pending. These acceptance boxes stay open until merge and the required evidence exists; older development-preview URLs described above have been retired by A15.
+
 ---
 
 ## Shared Tasks (with Sandy)

@@ -4,12 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
-import {
-  authClient,
-  authError,
-  authPreviewEnabled,
-  type AuthUiError,
-} from "@/lib/api/auth";
+import { authClient, authError, type AuthUiError } from "@/lib/api/auth";
 import { signUpSchema } from "./schemas";
 import {
   AuthErrorNotice,
@@ -62,7 +57,7 @@ export function SignUpForm() {
           aria-busy={form.formState.isSubmitting}
         >
           <fieldset
-            disabled={form.formState.isSubmitting || !authPreviewEnabled()}
+            disabled={form.formState.isSubmitting}
             className="min-w-0 space-y-4"
           >
             <AuthField

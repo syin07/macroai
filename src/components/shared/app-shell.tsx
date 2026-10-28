@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { ChartLine, History, MessageCircle, Settings } from "lucide-react";
 import { Brand } from "./brand";
 
@@ -63,6 +64,13 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
+  const previous = useRef(path);
+  const main = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (previous.current !== path) main.current?.focus();
+    previous.current = path;
+  }, [path]);
   return (
     <div className="app-shell min-h-dvh">
       <a href="#main-content" className="skip-link">
@@ -73,7 +81,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Navigation />
       </aside>
       <div className="app-main-column">
-        <main id="main-content" tabIndex={-1} className="focus:outline-none">
+        <main
+          ref={main}
+          id="main-content"
+          tabIndex={-1}
+          className="focus:outline-none"
+        >
           {children}
         </main>
       </div>

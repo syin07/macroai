@@ -66,18 +66,16 @@ afterEach(() => {
 });
 
 describe("auth form flows", () => {
-  it("disables the unconnected forms in production even with mock mode on", () => {
+  it("enables production sign-in and keeps the preview-only banner out of it", async () => {
     vi.stubEnv("NODE_ENV", "production");
     show(<SignInForm />);
     const button = screen.getByRole("button", { name: "Sign in" });
-    expect(button.matches(":disabled")).toBe(true);
-    expect(
-      screen.getByText(
-        "Account access is temporarily unavailable. Please try again later.",
-      ),
-    ).toBeTruthy();
-    (button as HTMLButtonElement).click();
-    expect(authClient.signInWithPassword).not.toHaveBeenCalled();
+    expect(button.matches(":disabled")).toBe(false);
+    expect(screen.queryByText(/Preview only/)).toBeNull();
+    fill("Email", "ken@example.com");
+    fill("Password", "test-only-password");
+    fireEvent.click(button);
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/chat"));
   });
   it("validates inputs before calling auth and labels invalid fields", async () => {
     show(<SignInForm />);
