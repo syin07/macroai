@@ -39,8 +39,9 @@ vi.mock("@/lib/database/admin", () => ({ createServiceRoleClient: () => createSe
 
 // No paid model calls: the provider is a stub.
 const extractMeal = vi.fn();
+const chat = vi.fn();
 vi.mock("@/lib/ai/providers", () => ({
-  getProvider: () => ({ name: "anthropic", model: "claude-haiku-5-5", extractMeal, chat: vi.fn() }),
+  getProvider: () => ({ name: "anthropic", model: "claude-haiku-5-5", extractMeal, chat }),
 }));
 // No USDA calls either.
 vi.mock("@/lib/nutrition/usda", async (original) => ({
@@ -172,12 +173,12 @@ function failingAdmin(mode: FailMode) {
   };
 }
 
-// Server logs get the error's name and message as text (handleRouteError), never an Error object:
+// Server logs get the error's name and message (and at most a status code) as text (handleRouteError), never an Error object:
 // console.error(error) prints the stack and any properties a driver attached.
 function expectStringLogs() {
   expect(errorLog).toHaveBeenCalled();
   for (const args of errorLog.mock.calls) {
-    for (const arg of args) expect(typeof arg, `logged a ${typeof arg}: ${String(arg)}`).toBe("string");
+    for (const arg of args) expect(["string", "number"], `logged a ${typeof arg}: ${String(arg)}`).toContain(typeof arg);
     expect(args.join(" ")).not.toContain("    at ");
   }
 }
@@ -197,6 +198,7 @@ beforeEach(() => {
   admin = null;
   createServiceRoleClient.mockClear();
   extractMeal.mockReset();
+  chat.mockReset();
   errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -235,6 +237,7 @@ describe("no session", () => {
     expect(auth.rpc).not.toHaveBeenCalled();
     expect(createServiceRoleClient).not.toHaveBeenCalled();
     expect(extractMeal).not.toHaveBeenCalled();
+    expect(chat).not.toHaveBeenCalled();
   });
 });
 
@@ -246,6 +249,7 @@ describe("signed in but not approved", () => {
     expect(auth.from).not.toHaveBeenCalled();
     expect(createServiceRoleClient).not.toHaveBeenCalled();
     expect(extractMeal).not.toHaveBeenCalled();
+    expect(chat).not.toHaveBeenCalled();
   });
 
   it("is still 403 when the body names an approved user", async () => {
@@ -310,6 +314,7 @@ describe.each<FailMode>(["returned", "thrown"])("database errors (%s)", (mode) =
     async (_key, call) => {
       await expectCleanError(await call(), 500, "internal");
       expect(extractMeal).not.toHaveBeenCalled();
+      expect(chat).not.toHaveBeenCalled();
       expectStringLogs();
     },
   );
@@ -346,5 +351,22 @@ describe("other internal failures", () => {
     extractMeal.mockRejectedValue(new Error(`Anthropic 500: ${INTERNAL_DETAIL} sk-ant-api03-not-a-real-key`));
     await expectCleanError(await api.analyzeMeal({ text: "2 eggs and toast", timezone: "UTC" }), 503, "ai_unavailable");
     expect(JSON.stringify(errorLog.mock.calls)).not.toContain("2 eggs and toast");
+  });
+
+  it("POST /api/ai/chat → 503 when the provider fails, without echoing its error or the message", async () => {
+    given(signedIn(true));
+    const db = createAppDb({
+      profiles: [{ id: ME, timezone: "UTC" }],
+      account_preferences: [{ user_id: ME, theme: "system", save_mode: "confirm", assistant_style: "casual" }],
+    });
+    client = { ...auth, from: db.from };
+    chat.mockRejectedValue(Object.assign(new Error(`Anthropic 500: ${INTERNAL_DETAIL} sk-ant-api03-not-a-real-key`), { status: 500 }));
+    await expectCleanError(await api.chat({ text: "2 eggs and toast" }), 503, "ai_unavailable");
+    expect(chat).toHaveBeenCalled();
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain("2 eggs and toast");
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain(LEAK_MARKER);
+    // The failed message is kept for a retry, marked as an error, with no image and no error text.
+    expect(db.rows("messages").map((row) => [row.role, row.status])).toEqual([["user", "error"]]);
+    expect(JSON.stringify(db.rows("messages"))).not.toContain(LEAK_MARKER);
   });
 });

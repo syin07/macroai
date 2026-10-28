@@ -4,6 +4,7 @@ import { join, relative, sep } from "node:path";
 import type { MealItem } from "@/types/api";
 import * as account from "@/app/api/account/route";
 import * as analyzeMeal from "@/app/api/ai/analyze-meal/route";
+import * as chat from "@/app/api/ai/chat/route";
 import * as purge from "@/app/api/cron/purge/route";
 import * as exportRoute from "@/app/api/export/route";
 import * as goals from "@/app/api/goals/route";
@@ -14,6 +15,8 @@ import * as undo from "@/app/api/meals/[id]/undo/route";
 import * as meals from "@/app/api/meals/route";
 import * as memoryById from "@/app/api/memories/[id]/route";
 import * as memories from "@/app/api/memories/route";
+import * as messageById from "@/app/api/messages/[id]/route";
+import * as messages from "@/app/api/messages/route";
 import * as daily from "@/app/api/nutrition/daily/route";
 import * as onboarding from "@/app/api/onboarding/complete/route";
 import * as preferences from "@/app/api/preferences/route";
@@ -37,6 +40,26 @@ function request(path: string, method = "GET", body?: unknown, headers: Record<s
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
+export interface ChatForm {
+  client_message_id?: string;
+  text?: string;
+  timezone?: string;
+  image?: Blob;
+  // Extra form fields (e.g. a smuggled user_id).
+  extra?: Record<string, string>;
+}
+
+// POST /api/ai/chat takes multipart/form-data.
+function chatRequest({ client_message_id = randomUUID(), text, timezone = "UTC", image, extra = {} }: ChatForm): Request {
+  const form = new FormData();
+  form.set("client_message_id", client_message_id);
+  form.set("timezone", timezone);
+  if (text !== undefined) form.set("text", text);
+  if (image) form.set("image", image, "meal.jpg");
+  for (const [name, value] of Object.entries(extra)) form.set(name, value);
+  return new Request(`${BASE}/api/ai/chat`, { method: "POST", body: form });
+}
+
 export const api = {
   me: () => me.GET(),
   listMeals: (query = "") => meals.GET(request(`/api/meals${query}`)),
@@ -59,6 +82,9 @@ export const api = {
   exportData: (query: string) => exportRoute.GET(request(`/api/export${query}`)),
   deleteAccount: (body: unknown) => account.DELETE(request("/api/account", "DELETE", body)),
   analyzeMeal: (body: unknown) => analyzeMeal.POST(request("/api/ai/analyze-meal", "POST", body)),
+  chat: (form: ChatForm) => chat.POST(chatRequest(form)),
+  listMessages: (query = "") => messages.GET(request(`/api/messages${query}`)),
+  deleteMessage: (id: string) => messageById.DELETE(request(`/api/messages/${id}`, "DELETE"), ctx(id)),
   purge: (headers: Record<string, string> = {}) => purge.GET(request("/api/cron/purge", "GET", undefined, headers)),
 };
 
@@ -91,6 +117,7 @@ export const valid = {
   memory: { content: "Usual coffee: oat latte" },
   account: { confirm: "DELETE" },
   analyze: { text: "2 eggs and toast", timezone: "UTC" },
+  chat: { text: "2 eggs and toast", timezone: "UTC" },
 };
 
 export type RouteCall = readonly [key: string, call: () => Promise<Response>];
@@ -118,6 +145,9 @@ export function userRoutes(id: string): RouteCall[] {
     ["GET /api/export", () => api.exportData("?format=json&scope=account")],
     ["DELETE /api/account", () => api.deleteAccount(valid.account)],
     ["POST /api/ai/analyze-meal", () => api.analyzeMeal(valid.analyze)],
+    ["POST /api/ai/chat", () => api.chat(valid.chat)],
+    ["GET /api/messages", () => api.listMessages()],
+    ["DELETE /api/messages/[id]", () => api.deleteMessage(id)],
   ];
 }
 

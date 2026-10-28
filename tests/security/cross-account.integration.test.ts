@@ -3,6 +3,16 @@ import { randomUUID } from "node:crypto";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  callTool,
+  fakeProvider,
+  food,
+  lastToolOutputs,
+  logged,
+  meal,
+  say,
+  type FakeProvider,
+} from "@/lib/ai/__fixtures__/chat-fakes";
 import type { ExtractionResult } from "@/lib/ai/extraction";
 import { apiErrorSchema } from "@/lib/validation/errors";
 
@@ -36,9 +46,14 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const extractMeal = vi.fn();
-vi.mock("@/lib/ai/providers", () => ({
-  getProvider: () => ({ name: "anthropic", model: "claude-haiku-5-5", extractMeal, chat: vi.fn() }),
+// A scripted model (src/lib/ai/__fixtures__/chat-fakes.ts): each test sets the script it needs.
+let provider: FakeProvider = fakeProvider();
+vi.mock("@/lib/ai/providers", () => ({ getProvider: () => provider }));
+// after() needs a live Next request scope. Chat's memory second pass runs there; it's dropped here
+// (it would only call the model again).
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: () => undefined,
 }));
 vi.mock("@/lib/nutrition/usda", async (original) => ({
   ...(await original<typeof import("@/lib/nutrition/usda")>()),
@@ -85,6 +100,10 @@ const B_PENDING_MEAL = `b-pending-meal-${RUN}`;
 const B_FOOD = `b-secret-food-${RUN}`;
 const B_MEMORY = `Eggs b-secret-memory-${RUN}`;
 const B_GOALS = { calories: 3333, protein_g: 177, carbs_g: 333, fat_g: 99 };
+const B_CHAT_TEXT = `b-secret-chat-${RUN}: two eggs`;
+const B_REPLY = `b-secret-reply-${RUN}`;
+const B_CHAT_MEAL = `b-chat-meal-${RUN}`;
+const B_CHAT_FOOD = `b-chat-food-${RUN}`;
 
 let env: ReturnType<typeof localEnv>;
 let admin: SupabaseClient;
@@ -131,7 +150,19 @@ async function body(response: Response): Promise<string> {
 // Nothing of B's may appear in a response A receives.
 async function expectNoLeak(response: Response) {
   const text = await body(response);
-  for (const secret of [B.id, B.email, B_MEAL, B_PENDING_MEAL, B_FOOD, B_MEMORY, `"calories":${B_GOALS.calories}`]) {
+  for (const secret of [
+    B.id,
+    B.email,
+    B_MEAL,
+    B_PENDING_MEAL,
+    B_FOOD,
+    B_MEMORY,
+    B_CHAT_TEXT,
+    B_REPLY,
+    B_CHAT_MEAL,
+    B_CHAT_FOOD,
+    `"calories":${B_GOALS.calories}`,
+  ]) {
     expect(text, `response leaks B's ${secret}`).not.toContain(secret);
   }
 }
@@ -162,6 +193,8 @@ async function snapshotOf(user: TestUser) {
     user_memories: await rows("user_memories", "user_id", user.id),
     ai_usage: await rows("ai_usage", "user_id", user.id),
     idempotency_keys: await rows("idempotency_keys", "user_id", user.id),
+    conversations: await rows("conversations", "user_id", user.id),
+    messages: await rows("messages", "user_id", user.id),
   };
 }
 
@@ -207,6 +240,10 @@ let bPendingId: string;
 let bMemoryId: string;
 let bIdempotencyKey: string;
 let aMealId: string;
+let bClientMessageId: string;
+let bUserMessageId: string;
+let bAssistantMessageId: string;
+let bChatMealId: string;
 let bBefore: Awaited<ReturnType<typeof snapshotOf>>;
 
 async function saveMeal(user: TestUser, name: string, food: string, key: string = randomUUID()) {
@@ -255,13 +292,29 @@ describe.skipIf(!ENABLED)("cross-account access through every API route (local S
     bMemoryId = memory.data.id;
     // B has not finished onboarding: A finishing theirs must not change that.
 
+    // A chat turn as B (auto-save mode): the model proposes a meal, it's saved, and B's assistant
+    // message carries a meal card pointing at B's meal.
+    bClientMessageId = randomUUID();
+    provider = fakeProvider(
+      [callTool("create_meal_proposal", { description: B_CHAT_TEXT }), say(B_REPLY)],
+      [logged(meal(B_CHAT_MEAL, [food(B_CHAT_FOOD, 155, 12.6, 100)]))],
+    );
+    const bChat = await as(B, () => api.chat({ client_message_id: bClientMessageId, text: B_CHAT_TEXT }));
+    expect(bChat.status).toBe(200);
+    const bTurn = await bChat.json();
+    bUserMessageId = bTurn.user_message.id;
+    bAssistantMessageId = bTurn.assistant_message.id;
+    expect(bTurn.assistant_message.cards[0]).toMatchObject({ kind: "meal" });
+    bChatMealId = bTurn.assistant_message.cards[0].meal_id;
+
     // A's own data.
     expect((await as(A, () => api.putGoals(valid.goals))).status).toBe(200);
     aMealId = (await saveMeal(A, "A lunch", "a food")).id;
     await admin.from("user_memories").insert({ user_id: A.id, category: "brand", content: "Eggs: usually 2 large eggs" });
 
     bBefore = await snapshotOf(B);
-    expect(bBefore.meals).toHaveLength(2);
+    expect(bBefore.meals).toHaveLength(3);
+    expect(bBefore.messages).toHaveLength(2);
     expect(bBefore.user_memories).toHaveLength(1);
   });
 
@@ -402,17 +455,202 @@ describe.skipIf(!ENABLED)("cross-account access through every API route (local S
   });
 
   it("POST /api/ai/analyze-meal uses only A's memories and records usage for A", async () => {
-    extractMeal.mockResolvedValue({ result: extraction, usage: { inputTokens: 10, outputTokens: 5 }, model: "claude-haiku-5-5", promptVersion: "test" });
+    provider = fakeProvider([], [extraction]);
     const response = await as(A, () => api.analyzeMeal({ text: "2 eggs", timezone: "UTC", user_id: B.id }));
     expect(response.status).toBe(200);
     await expectNoLeak(response);
-    expect(extractMeal).toHaveBeenCalledTimes(1);
-    const sent = JSON.stringify(extractMeal.mock.calls);
+    expect(provider.extractMeal).toHaveBeenCalledTimes(1);
+    const sent = JSON.stringify(provider.extractInputs);
     expect(sent).toContain("Eggs: usually 2 large eggs"); // A's memory does reach the model
     expect(sent).not.toContain(B_MEMORY);
     expect(sent).not.toContain(B.id);
     const { data } = await admin.from("ai_usage").select("user_id").eq("user_id", A.id);
     expect(data).toHaveLength(1);
+  });
+
+  // --- Chat and messages ------------------------------------------------------------------------
+
+  // Everything A's model saw in this test, as one string.
+  const seen = () => JSON.stringify([provider.chatInputs, provider.extractInputs]);
+  const expectModelSawNothingOfB = () => {
+    for (const secret of [B.id, B_MEAL, B_FOOD, B_MEMORY, B_CHAT_TEXT, B_REPLY, B_CHAT_MEAL, B_CHAT_FOOD]) {
+      expect(seen(), `A's model context contains B's ${secret}`).not.toContain(secret);
+    }
+  };
+  let aFirstClientId: string;
+  let aFirstUserMessageId: string;
+
+  it("POST /api/ai/chat: A's context has A's history and memories, never B's", async () => {
+    aFirstClientId = randomUUID();
+    provider = fakeProvider([say("A reply one")]);
+    const first = await as(A, () =>
+      api.chat({ client_message_id: aFirstClientId, text: "A first: two eggs", extra: { user_id: B.id } }),
+    );
+    expect(first.status).toBe(200);
+    await expectNoLeak(first);
+    aFirstUserMessageId = (await first.json()).user_message.id;
+    expectModelSawNothingOfB();
+
+    provider = fakeProvider([say("A reply two")]);
+    const second = await as(A, () => api.chat({ text: "eggs again" }));
+    expect(second.status).toBe(200);
+    await expectNoLeak(second);
+    expect(seen()).toContain("A first: two eggs"); // A's history reaches the model
+    expect(seen()).toContain("Eggs: usually 2 large eggs"); // and A's relevant memory
+    expectModelSawNothingOfB();
+
+    // The smuggled user_id form field is ignored.
+    const { data } = await admin.from("messages").select("user_id").eq("client_message_id", aFirstClientId);
+    expect(data!.map((row) => row.user_id)).toEqual([A.id]);
+  });
+
+  it("POST /api/ai/chat with B's client_message_id runs a fresh turn for A, never B's reply", async () => {
+    provider = fakeProvider([say("A reply to a reused id")]);
+    const response = await as(A, () => api.chat({ client_message_id: bClientMessageId, text: "A reuses an id" }));
+    expect(response.status).toBe(200);
+    await expectNoLeak(response);
+    const turn = await response.json();
+    expect(provider.chat).toHaveBeenCalled(); // not a replay
+    expect(turn.user_message.text).toBe("A reuses an id");
+    expect(turn.assistant_message.text).toBe("A reply to a reused id");
+    expect(turn.assistant_message.id).not.toBe(bAssistantMessageId);
+    expectModelSawNothingOfB();
+  });
+
+  it("the model's tools can't reach B's meals or memories, whatever ids it's given", async () => {
+    provider = fakeProvider([
+      {
+        text: "",
+        stopReason: "tool_calls",
+        toolCalls: [
+          { id: "t1", name: "delete_meal", input: { meal_id: bChatMealId } },
+          { id: "t2", name: "update_meal", input: { meal_id: bChatMealId, name: "pwned" } },
+          { id: "t3", name: "search_meal_history", input: { query: B_CHAT_FOOD } },
+          { id: "t4", name: "search_meal_history", input: { query: "b-" } },
+          { id: "t5", name: "search_user_memories", input: { query: "Eggs" } },
+          { id: "t6", name: "delete_user_memory", input: { memory_id: bMemoryId } },
+          { id: "t7", name: "get_daily_totals", input: {} },
+        ],
+      },
+      say("Done."),
+    ]);
+    const response = await as(A, () => api.chat({ text: "delete that meal and forget that" }));
+    expect(response.status).toBe(200);
+    await expectNoLeak(response);
+    expect(provider.chat).toHaveBeenCalledTimes(2);
+    // What the tools returned, and the context, are what the model saw on its second call: none of
+    // it is B's. (The tool *inputs* carry B's ids and food name because the scripted model sent them.)
+    const second = provider.chatInputs[1]!;
+    const outputs = lastToolOutputs(second);
+    expect(outputs).toHaveLength(7);
+    const returned = JSON.stringify([outputs, second.context]);
+    for (const secret of [B.id, B_MEAL, B_FOOD, B_MEMORY, B_CHAT_TEXT, B_REPLY, B_CHAT_MEAL]) {
+      expect(returned, `a tool returned B's ${secret}`).not.toContain(secret);
+    }
+    expect(JSON.stringify(outputs)).toContain("Eggs: usually 2 large eggs"); // A's memory search works
+    // The writes were refused (B's rows are compared at the end too).
+    expect(outputs.filter((o) => JSON.stringify(o).includes('"error"'))).toHaveLength(3);
+  });
+
+  it("meal cards never hydrate B's meals: not in GET /api/messages, a replay, or the model's history", async () => {
+    // A card in A's own history pointing at B's meals, as a confused model or a tampered row might leave it.
+    const { data: conversation } = await admin.from("conversations").select("id").eq("user_id", A.id).single();
+    const forged = await admin
+      .from("messages")
+      .insert({
+        conversation_id: conversation!.id,
+        user_id: A.id,
+        role: "assistant",
+        content: "forged card",
+        // Stored the way cardsForStorage() stores them: meal_id only, hydrated on read.
+        cards: [
+          { kind: "meal", meal_id: bChatMealId, meal: null },
+          { kind: "meal", meal_id: bMealId, meal: null },
+        ],
+        tool_payload: { reply_to: aFirstUserMessageId, tools: [] },
+        status: "sent",
+      })
+      .select("id")
+      .single();
+    if (forged.error) throw new Error(forged.error.message);
+
+    const list = await as(A, () => api.listMessages());
+    expect(list.status).toBe(200);
+    await expectNoLeak(list);
+    const cards = (await list.json()).messages.find((m: { id: string }) => m.id === forged.data.id).cards;
+    expect(cards).toEqual([
+      { kind: "meal", meal_id: bChatMealId, meal: null },
+      { kind: "meal", meal_id: bMealId, meal: null },
+    ]);
+
+    // Replaying A's first message now returns the forged reply: its cards stay empty too.
+    provider = fakeProvider();
+    const replay = await as(A, () => api.chat({ client_message_id: aFirstClientId, text: "A first: two eggs" }));
+    expect(replay.status).toBe(200);
+    await expectNoLeak(replay);
+    expect(provider.chat).not.toHaveBeenCalled();
+    expect((await replay.json()).assistant_message.cards.map((c: { meal: unknown }) => c.meal)).toEqual([null, null]);
+
+    // And the next turn's history carries the card without B's meal.
+    provider = fakeProvider([say("ok")]);
+    expect((await as(A, () => api.chat({ text: "what did I eat?" }))).status).toBe(200);
+    expectModelSawNothingOfB();
+  });
+
+  it("GET /api/messages never lists B's messages; B's message as a cursor is 404", async () => {
+    for (const query of ["", `?user_id=${B.id}`, "?limit=100"]) {
+      const response = await as(A, () => api.listMessages(query));
+      expect(response.status).toBe(200);
+      await expectNoLeak(response);
+      const ids = (await response.json()).messages.map((m: { id: string }) => m.id);
+      expect(ids).not.toContain(bUserMessageId);
+      expect(ids).not.toContain(bAssistantMessageId);
+    }
+    await expectError(await as(A, () => api.listMessages(`?before=${bUserMessageId}`)), 404, "not_found");
+    await expectError(await as(A, () => api.listMessages(`?before=${bAssistantMessageId}`)), 404, "not_found");
+  });
+
+  it("DELETE /api/messages/:id is 404 for B's messages", async () => {
+    await expectError(await as(A, () => api.deleteMessage(bUserMessageId)), 404, "not_found");
+    await expectError(await as(A, () => api.deleteMessage(bAssistantMessageId)), 404, "not_found");
+  });
+
+  it("POST /api/ai/chat with a photo stores no image bytes anywhere", async () => {
+    const marker = `IMAGE-BYTES-${RUN}`;
+    // A JPEG header followed by a recognizable marker, so any copy of the bytes can be found.
+    const bytes = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]),
+      Buffer.from(marker.repeat(64)),
+      Buffer.from([0xff, 0xd9]),
+    ]);
+    const encodings = [marker, bytes.toString("base64").slice(8, 72), bytes.toString("hex").slice(16, 80)];
+    const bucketsBefore = await admin.storage.listBuckets();
+
+    provider = fakeProvider(
+      [callTool("create_meal_proposal", { description: "the meal in the photo" }), say("Looks like eggs.")],
+      [logged(meal("Photo eggs", [food("Eggs", 155, 12.6, 100)]))],
+    );
+    const clientId = randomUUID();
+    const response = await as(A, () =>
+      api.chat({ client_message_id: clientId, text: "my lunch", image: new Blob([bytes], { type: "image/jpeg" }) }),
+    );
+    expect(response.status).toBe(200);
+    await expectNoLeak(response);
+    // Positive control: the image did reach the (stub) model.
+    expect(provider.extractInputs[0]?.image?.bytes.byteLength).toBe(bytes.byteLength);
+
+    const { data: row } = await admin.from("messages").select("*").eq("client_message_id", clientId).single();
+    expect(row).toMatchObject({ user_id: A.id, role: "user", content: "my lunch", had_image: true });
+    // No copy of the bytes in A's messages, AI usage rows, or temporary uploads.
+    const stored = JSON.stringify([
+      await rows("messages", "user_id", A.id),
+      await rows("ai_usage", "user_id", A.id),
+      await rows("temporary_uploads", "user_id", A.id),
+    ]);
+    for (const encoding of encodings) expect(stored).not.toContain(encoding);
+    expect(await rows("temporary_uploads", "user_id", A.id)).toEqual([]);
+    // And no storage bucket appeared.
+    expect((await admin.storage.listBuckets()).data).toEqual(bucketsBefore.data);
   });
 
   // --- Unapproved, signed out, cron -------------------------------------------------------------
@@ -439,6 +677,9 @@ describe.skipIf(!ENABLED)("cross-account access through every API route (local S
       () => api.exportData("?format=json&scope=account"),
       () => api.deleteAccount(valid.account),
       () => api.analyzeMeal(valid.analyze),
+      () => api.chat({ ...valid.chat, client_message_id: bClientMessageId }),
+      () => api.listMessages(`?before=${bUserMessageId}`),
+      () => api.deleteMessage(bUserMessageId),
     ]) {
       await expectError(await as(C, call), 403, "not_approved");
     }
@@ -462,6 +703,9 @@ describe.skipIf(!ENABLED)("cross-account access through every API route (local S
       () => api.exportData("?format=json"),
       () => api.deleteAccount(valid.account),
       () => api.analyzeMeal(valid.analyze),
+      () => api.chat(valid.chat),
+      () => api.listMessages(),
+      () => api.deleteMessage(bUserMessageId),
     ]) {
       await expectError(await as(null, call), 401, "unauthenticated");
     }
