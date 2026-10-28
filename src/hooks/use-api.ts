@@ -170,13 +170,17 @@ export function useMessages() {
     }),
   });
 }
-export function useMeals(filters: Omit<api.MealFilters, "cursor"> = {}) {
+export function useMeals(
+  filters: Omit<api.MealFilters, "cursor"> = {},
+  options: { enabled?: boolean } = {},
+) {
   return useInfiniteQuery({
     queryKey: queryKeys.meals(filters),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       api.getMeals({ ...filters, cursor: pageParam }, { signal }),
     getNextPageParam: (page) => page.next_cursor ?? undefined,
+    enabled: options.enabled,
   });
 }
 
