@@ -207,7 +207,7 @@ export async function runCorrectionCase(
     memory: null,
     priorProposals: new Map(),
   };
-  const result = await runChatTurn(chat, tools, { provider: recording, recordUsage: options.recordUsage ?? (async () => {}) });
+  const result = await runChatTurn(chat, tools, { provider: recording, checkCap: async () => undefined, recordUsage: options.recordUsage ?? (async () => {}) });
   return {
     ...seeded,
     text: result.text,
