@@ -4,12 +4,13 @@ import { z } from "zod";
 import type { ChatMessage, ChatResponse, MealProposal } from "@/types/api";
 import { ApiErrorException, toErrorResponse } from "@/lib/api-error";
 import { analyzeMeal } from "@/lib/ai/analyze";
-import { assertWithinAiCap } from "@/lib/ai/cap";
+import { createAiCapGuard } from "@/lib/ai/cap";
 import { runChatTurn } from "@/lib/ai/chat";
 import { buildContext, HISTORY_MESSAGES, loadContextMemories } from "@/lib/ai/context";
 import { createMealStore } from "@/lib/ai/meal-store";
 import { createMemoryStore } from "@/lib/ai/memory-store";
 import type { ImageMediaType, MealImage } from "@/lib/ai/provider";
+import { photoExtractionText } from "@/lib/ai/photo";
 import { getProvider } from "@/lib/ai/providers";
 import type { MealStore, ToolContext } from "@/lib/ai/tools";
 import { createUsageRecorder } from "@/lib/ai/usage";
@@ -33,17 +34,20 @@ import { getPreferences } from "@/lib/database/preferences";
 import { maybeSaveMemory } from "@/lib/memory/extract";
 import { createSupabaseNutritionCache } from "@/lib/nutrition/cache";
 import { getFood, searchFoods } from "@/lib/nutrition/usda";
-import { chatFormSchema, imageFileSchema, isImageTooLarge } from "@/lib/validation";
-import { json } from "../../_lib/route";
+import { chatFormSchema, imageFileSchema, isImageTooLarge, MAX_CHAT_BODY_BYTES, sniffImageType } from "@/lib/validation";
+import { json, readBodyUpTo } from "../../_lib/route";
 
 // POST /api/ai/chat (multipart: client_message_id, text?, image?, timezone) → ChatResponse.
 //
 // Order matters:
-//   1. auth, then validate the form (an oversized image is 413 before anything else runs);
+//   1. auth, then validate the form (a body over MAX_CHAT_BODY_BYTES or an image over 1.5 MB is 413
+//      before anything else runs; the image must be JPEG/PNG/WebP by its magic bytes);
 //   2. replay: a client_message_id seen before returns the stored result with no model call;
-//   3. the daily AI cap (429 before any model call);
+//   3. the daily AI cap (429 before any model call), checked again before every model call in the
+//      turn: hitting it midway ends the turn with what it did and a short "daily AI limit" reply;
 //   4. store the user message (`had_image` only: image bytes go to the model and nowhere else);
-//   5. the model ↔ tools loop; 6. store the assistant message with its cards;
+//   5. the model ↔ tools loop (a photo and its caption go to one extraction call);
+//   6. store the assistant message with its cards;
 //   7. after the response is sent, B13's memory second pass (maybeSaveMemory), which can neither
 //      delay nor fail the response.
 //
@@ -58,9 +62,12 @@ function formString(form: FormData, name: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+// The body is read up to MAX_CHAT_BODY_BYTES only (413 past it, without reading the rest), then parsed.
 async function readForm(request: Request): Promise<FormData> {
+  const body = await readBodyUpTo(request, MAX_CHAT_BODY_BYTES);
   try {
-    return await request.formData();
+    const contentType = request.headers.get("content-type") ?? "";
+    return await new Response(body, { headers: { "content-type": contentType } }).formData();
   } catch {
     throw new ApiErrorException("validation_error", { message: "Send the message as multipart/form-data." });
   }
@@ -68,13 +75,18 @@ async function readForm(request: Request): Promise<FormData> {
 
 const IMAGE_FIELD_ERROR = (message: string) => new ApiErrorException("validation_error", { fields: { image: message } });
 
+// The declared type must be JPEG, PNG, or WebP, and so must the bytes themselves (magic bytes). The
+// model is told the sniffed type. Messages name the problem only, never anything from the file.
 async function readImage(value: FormDataEntryValue | null): Promise<MealImage | undefined> {
   if (value === null || value === "") return undefined;
   if (typeof value === "string") throw IMAGE_FIELD_ERROR("Image must be a file");
   if (isImageTooLarge(value)) throw new ApiErrorException("payload_too_large");
   const parsed = imageFileSchema.safeParse(value);
   if (!parsed.success) throw IMAGE_FIELD_ERROR(parsed.error.issues[0]?.message ?? "Invalid image");
-  return { bytes: new Uint8Array(await value.arrayBuffer()), mediaType: value.type as ImageMediaType };
+  const bytes = new Uint8Array(await value.arrayBuffer());
+  const mediaType: ImageMediaType | null = sniffImageType(bytes);
+  if (!mediaType) throw IMAGE_FIELD_ERROR("Image must be JPEG, PNG, or WebP");
+  return { bytes, mediaType };
 }
 
 // Cache writes are an optimization; without the service-role key the cache is read-only.
@@ -159,8 +171,11 @@ export async function POST(request: Request) {
       // The first attempt failed: run it again for the stored message, without a second row.
     }
 
-    // 3. Cap, before any model call.
-    await assertWithinAiCap(supabase, user.id, { now });
+    // 3. Cap, before any model call (429, nothing stored). The same guard is checked again before
+    // every chat step and extraction attempt in the turn (cap.ts).
+    const capGuard = createAiCapGuard(supabase, user.id, { now });
+    const checkCap = () => capGuard.check();
+    await checkCap();
 
     // Context from what's already saved (the current message isn't stored yet). Totals and memories
     // are best-effort: without them the model is told to use its tools, or does without.
@@ -186,7 +201,7 @@ export async function POST(request: Request) {
         throw new ApiErrorException("ai_unavailable", { message: "Still working on that message. Try again in a moment." });
       }
     }
-    const messageText = userRow.content || undefined;
+    const messageText = userRow.content || undefined; // also the photo's caption
 
     // 5. The tool loop.
     const provider = getProvider();
@@ -198,14 +213,21 @@ export async function POST(request: Request) {
       timezone,
       saveMode: preferences.save_mode,
       image,
+      // A photo and its caption go to extraction in one call; the bytes go nowhere else.
       analyze: (input) =>
         analyzeMeal(
-          { text: input.text, image: input.image, user: { id: user.id, timezone }, now },
+          {
+            text: input.image ? photoExtractionText(messageText, input.text) : input.text,
+            image: input.image,
+            user: { id: user.id, timezone },
+            now,
+          },
           {
             provider,
             lookup: { searchFoods, getFood },
             cache: createSupabaseNutritionCache({ reader: supabase, writer: cacheWriter() }),
             recordUsage,
+            checkCap,
           },
         ),
       lookup: { searchFoods, getFood },
@@ -225,7 +247,7 @@ export async function POST(request: Request) {
 
     let turn;
     try {
-      turn = await runChatTurn(chat, toolContext, { provider, recordUsage });
+      turn = await runChatTurn(chat, toolContext, { provider, recordUsage, checkCap });
     } catch (error) {
       await markMessageStatus(supabase, user.id, userRow.id, "error").catch(() => null);
       throw error;
@@ -244,9 +266,11 @@ export async function POST(request: Request) {
     const sentRow = (await markMessageStatus(supabase, user.id, userRow.id, "sent")) ?? userRow;
 
     // 7. Memory second pass, after the response is sent. Skipped when the model already saved or
-    // deleted a memory this turn (the user was explicit; a second call would only find a duplicate).
+    // deleted a memory this turn (the user was explicit; a second call would only find a duplicate),
+    // and when the turn stopped at the AI cap. It also skips itself at cap - 1 (extract.ts).
     // maybeSaveMemory never throws; the catch is belt and braces.
-    if (!state.tools.some((t) => t.ok && (t.name === "save_user_memory" || t.name === "delete_user_memory"))) {
+    const memoryToolRan = state.tools.some((t) => t.ok && (t.name === "save_user_memory" || t.name === "delete_user_memory"));
+    if (!memoryToolRan && !turn.capReached) {
       const memoryTurn = { userMessage: userRow.content, assistantReply: turn.text, sourceMessageId: userRow.id };
       after(() => maybeSaveMemory({ supabase, userId: user.id, ...memoryTurn }, { provider }).catch(() => undefined));
     }

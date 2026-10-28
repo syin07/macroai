@@ -16,9 +16,10 @@ import {
   say,
   type FakeProvider,
 } from "@/lib/ai/__fixtures__/chat-fakes";
+import { CAP_REACHED_REPLY } from "@/lib/ai/chat";
 import { createFakeDb, fakeClient, type FakeDb } from "@/lib/database/__fixtures__/fake-db";
 import { createAppDb, type MemoryDb } from "@/lib/database/__fixtures__/memory-supabase";
-import { chatResponseSchema } from "@/lib/validation";
+import { chatResponseSchema, MAX_CHAT_BODY_BYTES, MAX_IMAGE_BYTES } from "@/lib/validation";
 import { apiErrorSchema } from "@/lib/validation/errors";
 
 // POST /api/ai/chat end to end with a scripted model: no network, no live model calls. Meals go
@@ -348,6 +349,127 @@ describe("POST /api/ai/chat — AI cap", () => {
     expect(provider.extractMeal).not.toHaveBeenCalled();
     expect(appDb.rows("messages")).toHaveLength(0);
   });
+
+  it("mid-turn: keeps the proposal already made and replies with the limit message, not an error", async () => {
+    // Cap 2: the first chat call and the extraction fit; the second chat call doesn't.
+    vi.stubEnv("AI_DAILY_CALL_CAP", "2");
+    provider = fakeProvider(proposeThenSay("2 eggs and toast", "never sent"), [logged(EGGS_AND_TOAST)]);
+    const body = await ok(await send({ text: "2 eggs and toast" }));
+
+    expect(provider.chat).toHaveBeenCalledTimes(1);
+    expect(provider.extractMeal).toHaveBeenCalledTimes(1);
+    expect(body.assistant_message.cards).toMatchObject([{ kind: "proposal", state: "unsaved" }]);
+    expect(body.assistant_message.text).toContain(CAP_REACHED_REPLY);
+    expect(body.user_message.status).toBe("sent");
+    expect(appDb.rows("ai_usage")).toHaveLength(2);
+    // The memory pass isn't even scheduled.
+    expect(afterTasks).toHaveLength(0);
+  });
+
+  it("mid-turn in auto mode: the saved meal stays saved and is reported", async () => {
+    vi.stubEnv("AI_DAILY_CALL_CAP", "2");
+    given("auto");
+    provider = fakeProvider(proposeThenSay("2 eggs and toast", "never sent"), [logged(EGGS_AND_TOAST)]);
+    const body = await ok(await send({ text: "2 eggs and toast" }));
+
+    expect(mealDb.meals).toHaveLength(1);
+    expect(body.assistant_message.cards).toMatchObject([{ kind: "meal" }]);
+    expect(body.assistant_message.text).toBe(`Saved: Eggs and Toast (235 kcal).\n${CAP_REACHED_REPLY}`);
+    expect(body.daily_summary).not.toBeNull();
+  });
+
+  it("checks before the extraction call too: at the cap the extraction never runs", async () => {
+    vi.stubEnv("AI_DAILY_CALL_CAP", "2");
+    provider = fakeProvider(
+      [callTool("search_nutrition_foods", { query: "egg" }), callTool("create_meal_proposal", { description: "2 eggs" }), say("never sent")],
+      [logged(EGGS_AND_TOAST)],
+    );
+    const body = await ok(await send({ text: "2 eggs" }));
+
+    expect(provider.chat).toHaveBeenCalledTimes(2);
+    expect(provider.extractMeal).not.toHaveBeenCalled();
+    expect(body.assistant_message).toMatchObject({ text: CAP_REACHED_REPLY, cards: [] });
+    expect(appDb.rows("ai_usage")).toHaveLength(2);
+  });
+
+  it("a turn never ends up over the cap, however many tool steps the model wants", async () => {
+    vi.stubEnv("AI_DAILY_CALL_CAP", "3");
+    provider = fakeProvider(Array.from({ length: 10 }, () => callTool("search_nutrition_foods", { query: "egg" })));
+    await ok(await send({ text: "tell me about eggs" }));
+    expect(provider.chat).toHaveBeenCalledTimes(3);
+    expect(appDb.rows("ai_usage")).toHaveLength(3);
+  });
+
+  it("the memory pass skips silently rather than take the day's last call", async () => {
+    vi.stubEnv("AI_DAILY_CALL_CAP", "2");
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    provider = fakeProvider([say("Noted."), callTool("propose_memory", { has_memory: false })]);
+    await ok(await send({ text: "my usual shake is Fairlife Core Power 26g" }));
+    expect(afterTasks).toHaveLength(1);
+
+    await runAfterTasks();
+    expect(provider.chat).toHaveBeenCalledTimes(1); // 1 used, 1 left: the memory pass leaves it
+    expect(appDb.rows("ai_usage").map((row) => row.endpoint)).toEqual(["ai/chat"]);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+});
+
+describe("POST /api/ai/chat — request size", () => {
+  // A body that never ends, counting how much of it was read.
+  function endlessBody(chunkSize = 64 * 1024) {
+    let pulled = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += chunkSize;
+        controller.enqueue(new Uint8Array(chunkSize));
+      },
+    });
+    return { stream, pulled: () => pulled };
+  }
+
+  const multipart = { "content-type": "multipart/form-data; boundary=x" };
+
+  it("refuses a declared Content-Length over the limit with 413 before reading the body", async () => {
+    provider = fakeProvider([say("hi")]);
+    const body = endlessBody();
+    const request = new Request("http://localhost/api/ai/chat", {
+      method: "POST",
+      headers: { ...multipart, "content-length": String(MAX_CHAT_BODY_BYTES + 1) },
+      body: body.stream,
+      duplex: "half",
+    } as RequestInit);
+    const response = await POST(request);
+    expect(response.status).toBe(413);
+    expect((await errorOf(response)).code).toBe("payload_too_large");
+    expect(body.pulled()).toBeLessThanOrEqual(64 * 1024); // at most the stream's own first pull
+    expect(provider.chat).not.toHaveBeenCalled();
+  });
+
+  it("stops reading a streamed body at the limit and answers 413", async () => {
+    provider = fakeProvider([say("hi")]);
+    const body = endlessBody();
+    const request = new Request("http://localhost/api/ai/chat", {
+      method: "POST",
+      headers: multipart,
+      body: body.stream,
+      duplex: "half",
+    } as RequestInit);
+    const response = await POST(request);
+    expect(response.status).toBe(413);
+    expect((await errorOf(response)).code).toBe("payload_too_large");
+    // Read up to the limit plus a chunk or two of stream buffering, never the (infinite) rest.
+    expect(body.pulled()).toBeLessThan(MAX_CHAT_BODY_BYTES + 4 * 64 * 1024);
+    expect(appDb.rows("messages")).toHaveLength(0);
+  });
+
+  it("accepts a 1.5 MB image with a full caption inside the body limit", async () => {
+    provider = fakeProvider([say("Nice.")]);
+    const bytes = new Uint8Array(MAX_IMAGE_BYTES);
+    bytes.set([0xff, 0xd8, 0xff]);
+    const response = await send({ text: "é".repeat(2000), image: new Blob([bytes], { type: "image/jpeg" }) });
+    expect(response.status).toBe(200);
+  });
 });
 
 describe("POST /api/ai/chat — images", () => {
@@ -390,17 +512,116 @@ describe("POST /api/ai/chat — images", () => {
     expect(provider.chatInputs[0]!.messages.at(-1)).toEqual({ role: "user", text: "[photo attached]" });
     // A photo meal is saved as source_type "photo".
     expect(mealDb.meals[0]!.source_type).toBe("photo");
+  });
 
-    // Nothing image-like anywhere in the database layer.
-    const base64 = Buffer.from(MARKER).toString("base64").slice(0, 16);
-    const everything = JSON.stringify({
-      messages: appDb.rows("messages"),
-      conversations: appDb.rows("conversations"),
-      ai_usage: appDb.rows("ai_usage"),
-      mealDb,
+  it("rejects a file whose bytes aren't JPEG, PNG, or WebP, whatever its declared type", async () => {
+    provider = fakeProvider([say("hi")]);
+    const fakes = [
+      new Blob([new TextEncoder().encode("GIF89a....")], { type: "image/jpeg" }),
+      new Blob([new TextEncoder().encode("<svg xmlns='http://www.w3.org/2000/svg'><script/></svg>")], { type: "image/png" }),
+      new Blob([new TextEncoder().encode("%PDF-1.7")], { type: "image/webp" }),
+    ];
+    for (const image of fakes) {
+      const response = await send({ text: "lunch", image });
+      expect(response.status).toBe(400);
+      expect(await errorOf(response)).toMatchObject({ code: "validation_error", fields: { image: "Image must be JPEG, PNG, or WebP" } });
+    }
+    expect(provider.chat).not.toHaveBeenCalled();
+    expect(appDb.rows("messages")).toHaveLength(0);
+  });
+
+  it("tells the model the real format when the declared type is a different allowed one", async () => {
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d]);
+    provider = fakeProvider(proposeThenSay("the meal in the photo"), [logged(EGGS_AND_TOAST)]);
+    await ok(await send({ image: new Blob([png], { type: "image/jpeg" }) }));
+    expect(provider.extractInputs[0]!.image!.mediaType).toBe("image/png");
+  });
+
+  it("sends the photo and the user's caption to one extraction call", async () => {
+    provider = fakeProvider(proposeThenSay("chicken tenders and a dip"), [logged(EGGS_AND_TOAST)]);
+    await ok(await send({ text: "fried, with ranch", image: jpeg() }));
+
+    expect(provider.extractMeal).toHaveBeenCalledTimes(1);
+    const [input] = provider.extractInputs;
+    expect(input!.image).toBeDefined();
+    // The caption word for word, plus the model's description where it adds something.
+    expect(input!.text).toBe("fried, with ranch\nchicken tenders and a dip");
+  });
+
+  it("a text-only message's extraction gets the model's description unchanged", async () => {
+    provider = fakeProvider(proposeThenSay("2 eggs and toast"), [logged(EGGS_AND_TOAST)]);
+    await ok(await send({ text: "had 2 eggs and toast for breakfast" }));
+    expect(provider.extractInputs[0]).toMatchObject({ text: "2 eggs and toast", image: undefined });
+  });
+
+  it("an unrecognizable photo gives no card and the model's short explanation reaches the chat model", async () => {
+    const explanation = "I can't make out the food in this photo. Could you describe it?";
+    provider = fakeProvider(proposeThenSay("the meal in the photo", explanation), [{ intent: "other", meals: [], explanation }]);
+    const body = await ok(await send({ image: jpeg() }));
+
+    expect(body.assistant_message).toMatchObject({ text: explanation, cards: [] });
+    expect(lastToolOutputs(provider.chatInputs[1]!)[0]).toMatchObject({ proposals: [], explanation, saved: false });
+    expect(mealDb.meals).toHaveLength(0);
+  });
+
+  describe("never stores or logs the image (PRD FR-15)", () => {
+    const CONSOLE = ["log", "info", "warn", "error", "debug", "trace"] as const;
+    let spies: Array<ReturnType<typeof vi.spyOn>>;
+    beforeEach(() => {
+      spies = CONSOLE.map((method) => vi.spyOn(console, method).mockImplementation(() => {}));
     });
-    expect(everything).not.toContain(MARKER);
-    expect(everything).not.toContain(base64);
+    afterEach(() => spies.forEach((spy) => spy.mockRestore()));
+
+    // A photo whose bytes carry a marker, and every form they could leak in: raw, as text, base64
+    // of the whole file (what providers send), and base64 of the marker at each alignment.
+    const photo = jpeg(4096);
+    const leakForms = async () => {
+      const bytes = new Uint8Array(await photo.arrayBuffer());
+      const base64 = Buffer.from(bytes).toString("base64");
+      const markerBase64 = [0, 1, 2].map((shift) => Buffer.from(`${"x".repeat(shift)}${MARKER}`).toString("base64").slice(4, 24));
+      return [MARKER, base64, base64.slice(0, 40), base64.slice(100, 160), ...markerBase64];
+    };
+
+    const stored = () =>
+      JSON.stringify({
+        messages: appDb.rows("messages"),
+        conversations: appDb.rows("conversations"),
+        ai_usage: appDb.rows("ai_usage"),
+        user_memories: appDb.rows("user_memories"),
+        memory_candidates: appDb.rows("memory_candidates"),
+        mealDb,
+      });
+    const logLines = () => JSON.stringify(spies.flatMap((spy) => spy.mock.calls));
+
+    it("on a successful photo turn, including the memory pass", async () => {
+      given("auto");
+      provider = fakeProvider(proposeThenSay("the meal in the photo"), [logged(EGGS_AND_TOAST)]);
+      await ok(await send({ text: "lunch", image: photo }));
+      await runAfterTasks();
+
+      expect(mealDb.meals).toHaveLength(1);
+      for (const form of await leakForms()) {
+        expect(stored()).not.toContain(form);
+        expect(logLines()).not.toContain(form);
+      }
+    });
+
+    it("when the extraction call fails with an error that echoes the request", async () => {
+      provider = fakeProvider(proposeThenSay("the meal in the photo"));
+      const base64 = Buffer.from(new Uint8Array(await photo.arrayBuffer())).toString("base64");
+      provider.extractMeal.mockRejectedValue(Object.assign(new Error(`400 bad image: data:image/jpeg;base64,${base64}`), { status: 400 }));
+      await ok(await send({ image: photo }));
+
+      provider = fakeProvider();
+      provider.chat.mockRejectedValue(new Error(`500 while sending ${base64}`));
+      expect((await send({ image: photo })).status).toBe(503);
+
+      expect(spies.some((spy) => spy.mock.calls.length > 0)).toBe(true); // failures were logged, by name
+      for (const form of await leakForms()) {
+        expect(stored()).not.toContain(form);
+        expect(logLines()).not.toContain(form);
+      }
+    });
   });
 });
 

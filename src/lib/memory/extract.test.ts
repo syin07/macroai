@@ -139,8 +139,16 @@ describe("maybeSaveMemory: the model call", () => {
     expect(mine("memory_candidates")).toHaveLength(0);
   });
 
+  it("never takes the day's last call: skips silently at cap - 1", async () => {
+    const { provider, mine, run } = setup({ replies: [proposal({ explicit: true })], usage: usageRows(4) });
+    expect(await run(LOG_SHAKE)).toEqual({ status: "skipped", reason: "ai_cap_reached" });
+    expect(provider.chats).toHaveLength(0);
+    expect(mine("ai_usage")).toHaveLength(4);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
   it("counts only the user's own calls toward the cap", async () => {
-    const { provider, run } = setup({ replies: [NO_MEMORY], usage: [...usageRows(4), ...usageRows(20, OTHER)] });
+    const { provider, run } = setup({ replies: [NO_MEMORY], usage: [...usageRows(3), ...usageRows(20, OTHER)] });
     expect(await run(LOG_SHAKE)).toEqual({ status: "skipped", reason: "no_candidate" });
     expect(provider.chats).toHaveLength(1);
   });

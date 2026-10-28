@@ -1,7 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 import { ApiErrorException } from "@/lib/api-error";
-import { assertWithinAiCap, dailyCallCap, DEFAULT_AI_DAILY_CALL_CAP, startOfUserDay } from "./cap";
+import {
+  assertWithinAiCap,
+  createAiCapGuard,
+  dailyCallCap,
+  DEFAULT_AI_DAILY_CALL_CAP,
+  isAiCapReached,
+  startOfUserDay,
+} from "./cap";
 
 const USER_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -148,5 +155,58 @@ describe("assertWithinAiCap", () => {
     } finally {
       if (original !== undefined) process.env.AI_DAILY_CALL_CAP = original;
     }
+  });
+});
+
+describe("assertWithinAiCap with reserve", () => {
+  const now = new Date("2026-10-26T18:00:00Z");
+
+  it("leaves `reserve` calls free: refuses at cap - reserve", async () => {
+    const { client } = fakeClient(usage(2, "2026-10-26T10:00:00Z"), "UTC");
+    await expect(assertWithinAiCap(client, USER_ID, { now, cap: 3, reserve: 1 })).rejects.toMatchObject({
+      code: "ai_cap_reached",
+    });
+    const { client: fewer } = fakeClient(usage(1, "2026-10-26T10:00:00Z"), "UTC");
+    await expect(assertWithinAiCap(fewer, USER_ID, { now, cap: 3, reserve: 1 })).resolves.toEqual({ used: 1, cap: 3 });
+  });
+});
+
+describe("createAiCapGuard", () => {
+  const now = new Date("2026-10-26T18:00:00Z");
+
+  it("re-counts on every check, so calls made during the request count", async () => {
+    const rows = usage(1, "2026-10-26T10:00:00Z");
+    const { client } = fakeClient(rows, "UTC");
+    const guard = createAiCapGuard(client, USER_ID, { now, cap: 3 });
+    await expect(guard.check()).resolves.toEqual({ used: 1, cap: 3 });
+    rows.push(...usage(1, "2026-10-26T18:00:01Z")); // a call made by this request
+    await expect(guard.check()).resolves.toEqual({ used: 2, cap: 3 });
+    rows.push(...usage(1, "2026-10-26T18:00:02Z"));
+    await expect(guard.check()).rejects.toMatchObject({ code: "ai_cap_reached" });
+  });
+
+  it("reads the profile's zone once per guard", async () => {
+    const { client, calls } = fakeClient([], "UTC");
+    const guard = createAiCapGuard(client, USER_ID, { now, cap: 3 });
+    await guard.check();
+    await guard.check();
+    await guard.check();
+    expect(calls.filter(([table]) => table === "profiles")).toHaveLength(1);
+    expect(calls.filter(([table, op]) => table === "ai_usage" && op === "eq.user_id")).toHaveLength(3);
+  });
+
+  it("takes a per-check reserve", async () => {
+    const { client } = fakeClient(usage(2, "2026-10-26T10:00:00Z"), "UTC");
+    const guard = createAiCapGuard(client, USER_ID, { now, cap: 3 });
+    await expect(guard.check()).resolves.toEqual({ used: 2, cap: 3 });
+    await expect(guard.check({ reserve: 1 })).rejects.toMatchObject({ code: "ai_cap_reached" });
+  });
+});
+
+describe("isAiCapReached", () => {
+  it("is true only for the ai_cap_reached ApiErrorException", () => {
+    expect(isAiCapReached(new ApiErrorException("ai_cap_reached"))).toBe(true);
+    expect(isAiCapReached(new ApiErrorException("ai_unavailable"))).toBe(false);
+    expect(isAiCapReached(new Error("ai_cap_reached"))).toBe(false);
   });
 });

@@ -129,10 +129,10 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B9 — Photos
 
-- [ ] Accept `image` in `/api/ai/chat`: check the MIME type (JPEG/PNG/WebP), reject over 1.5 MB with `413`, and pass the bytes straight to `extractMeal`. **Never write them to storage or logs** (PRD FR-15 default).
-- [ ] Merge the text caption into the same extraction call.
-- [ ] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
-- [ ] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
+- [x] Accept `image` in `/api/ai/chat`: check the MIME type (JPEG/PNG/WebP), reject over 1.5 MB with `413`, and pass the bytes straight to `extractMeal`. **Never write them to storage or logs** (PRD FR-15 default).
+- [x] Merge the text caption into the same extraction call.
+- [x] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
+- [x] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
 - [ ] **(H5)** Tell Ken photos are live.
 
 **Done when:** a phone photo taken through the real UI produces a card, and nothing image-related exists in the database or storage afterwards.
