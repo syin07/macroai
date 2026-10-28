@@ -618,7 +618,17 @@ export function createMockApi(
           : JSON.stringify({
               meals: active,
               ...(scope === "account"
-                ? { messages: messages.map(rehydrate), memories }
+                ? {
+                    messages: messages.map(rehydrate),
+                    memories,
+                    account: {
+                      user_id: me.user_id,
+                      email: me.email,
+                      display_name: me.display_name,
+                      preferences: copy(preferences),
+                      goals: copy(goals),
+                    },
+                  }
                 : {}),
             }),
         {

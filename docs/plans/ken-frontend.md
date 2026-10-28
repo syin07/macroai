@@ -168,6 +168,8 @@ A11 implementation is on `ken/a11-history`, pending review/merge. It groups pagi
 
 **Done when (after H3/H8):** every setting persists across reload and across devices.
 
+A12 implementation is on `ken/a12-settings`, pending review/merge. Includes server-backed theme/logging/time-zone preferences with explicit Save and retained drafts, validated manual goals, a reusable calculation/review step with cm/ft-in and kg/lb inputs, memory edits/deletion confirmation, all three exports with temporary URL cleanup, and account actions. Suggestions do not save targets automatically. Sign-out now calls Sandy’s real helper outside development mocks; successful sign-out/deletion cancels queries, clears private caches, and replaces the document with sign-in. Account deletion requires exact `DELETE`; tests cover failure retention and duplicate-submit protection. `/auth/settings-preview` is development-only. Other A4 auth operations remain unwired, so real approved-account reload/cross-device and device checks remain open; keep A12’s acceptance box unchecked until merge and integration verification.
+
 ## A13 — Onboarding
 
 - [ ] Shown after the first sign-in when `me.onboarding_complete` is false. 4 short steps with a progress dots indicator, and "Skip" on optional steps:

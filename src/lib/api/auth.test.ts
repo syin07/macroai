@@ -1,6 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { authClient, authError, AuthUiError } from "./auth";
 import { createMockAuth } from "@/mocks/auth";
+import { signOut } from "@/lib/auth/client";
+vi.mock("@/lib/auth/client", () => ({ signOut: vi.fn(async () => {}) }));
+it("delegates production sign-out to Sandy's auth helper", async () => {
+  vi.stubEnv("NODE_ENV", "production");
+  await authClient.signOut();
+  expect(signOut).toHaveBeenCalledOnce();
+});
 
 afterEach(() => vi.unstubAllEnvs());
 
