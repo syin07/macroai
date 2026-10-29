@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { fileURLToPath } from "node:url";
 import { ExtractionOutputError, type ExtractedFood, type ExtractionResult } from "@/lib/ai/extraction";
 import type { AIProvider } from "@/lib/ai/provider";
 import { renderSummary, runBakeoff, summarize } from "./bakeoff";
@@ -303,7 +304,7 @@ describe("runBakeoff (dry run with a fake provider)", () => {
     const photoCase: PhotoCase = {
       id: "p1",
       dir: "",
-      photoFile: new URL(import.meta.url).pathname, // any readable file stands in for the photo
+      photoFile: fileURLToPath(import.meta.url), // any readable file stands in for the photo; fileURLToPath keeps Windows paths valid
       mediaType: "image/jpeg",
       truth: { items: [{ name: "Banana", grams: 120, fdc_id: 1 }] },
       computed: { computed_at: new Date(0).toISOString(), items: [], totals: { calories: 100, protein_g: 10, carbs_g: 0, fat_g: 0 } },
