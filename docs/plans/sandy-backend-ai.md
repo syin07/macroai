@@ -90,7 +90,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] `src/lib/nutrition/cache.ts`: read and write `nutrition_cache` by normalized query key before calling USDA.
 - [x] `src/lib/nutrition/calc.ts` (pure): `itemMacros(basis, grams)`, `sumMacros(items)`, `remaining(consumed, targets)`, `round1()` for display only.
 - [x] Unit tests (Vitest): doubling grams doubles macros; meal total = sum of items; rounding happens only at display; unit conversions.
-- [ ] Decide **USDA API vs. local copy**: if the API's latency or the 1,000/hour limit hurts in the bake-off, import the Foundation + SR Legacy CSVs into a `usda_foods` table instead. Record the choice in PRD §23.
+- [x] Decide **USDA API vs. local copy**: if the API's latency or the 1,000/hour limit hurts in the bake-off, import the Foundation + SR Legacy CSVs into a `usda_foods` table instead. Record the choice in PRD §23. (2026-10-29: live API with the existing cache; no local copy.)
 
 **Done when:** `matchAndCalculate(extraction)` turns the extraction output into `MealItem[]` with sources, and the tests pass.
 
@@ -98,7 +98,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 - [x] `src/lib/ai/analyze.ts`: `analyzeMeal({ text, image?, user })` → `MealProposal[]`. It loads relevant memories, calls `extractMeal`, validates with Zod (retry once on invalid JSON, then fail with `ai_unavailable`), runs B5 matching, falls back to a labeled AI-only estimate (`nutrition_source: "ai"`) per item when there's no match, and computes totals.
 - [x] Resolve dates: the model returns relative phrases or ISO; convert them in code using the user's timezone (`date-fns-tz`). Default to now.
-- [x] Clarification rule (PRD FR-03): if the model's low/high range for an item spans >20% of meal calories or >15 g protein, set `needs_clarification` with one short question.
+- [x] Clarification rule (PRD FR-03): if an item's low/high bound deviates from its point estimate by >20% of meal calories or >15 g protein, set `needs_clarification` with one short question. Inferred items are not measured. (Changed 2026-10-29 from the full span, to favour auto-save; PRD §23.)
 - [x] `POST /api/ai/analyze-meal` (internal and eval only).
 - [x] Log usage to `ai_usage` (model, tokens, cost) on every call.
 

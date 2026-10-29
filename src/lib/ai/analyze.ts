@@ -22,7 +22,9 @@ import type { RecordUsage, UsageEntry } from "./usage";
 const MAX_ATTEMPTS = 2; // one retry when the model's output fails the schema
 const MAX_ASSUMPTIONS_LENGTH = 1000;
 
-// PRD FR-03: ask only when one item's uncertainty could move the meal by more than this.
+// PRD FR-03: ask only when one item's uncertainty could move the meal by more than this. Uncertainty
+// is the larger deviation of the model's low/high bounds from its point estimate, not the full span,
+// and inferred hidden ingredients don't count (PRD §23, 2026-10-29: favour auto-save).
 export const CLARIFY_CALORIE_SHARE = 0.2;
 export const CLARIFY_PROTEIN_G = 15;
 
@@ -182,14 +184,25 @@ function toItem(food: ExtractedFood, result: FoodMatchResult): MealItem {
   };
 }
 
-// How far past the threshold an item's uncertainty goes; > 1 means ask.
+// How far the point estimate could be off: the larger distance from it to either bound. A point
+// outside its own bounds still measures the far side; never negative.
+export function estimateDeviation(point: number, low: number, high: number): number {
+  return Math.max(high - point, point - low, 0);
+}
+
+// How far past the threshold an item's uncertainty goes; > 1 means ask. The point is the model's own
+// estimate, because the bounds describe that estimate (a USDA match may land elsewhere). Inferred
+// items (oil, butter, sauce) are the model's guess about something the user never mentioned: they stay
+// in the meal as editable low-confidence items (PRD 12.3), but asking about each would stop auto-save
+// from ever saving, so they don't count here.
 function uncertainty(food: ExtractedFood, totals: Macros): number {
-  const range = food.estimate_range;
-  const calorieSpan = Math.abs(range.calories_high - range.calories_low);
-  const proteinSpan = Math.abs(range.protein_g_high - range.protein_g_low);
+  if (food.inferred) return 0;
+  const { estimated_macros: point, estimate_range: range } = food;
+  const calorieDeviation = estimateDeviation(point.calories, range.calories_low, range.calories_high);
+  const proteinDeviation = estimateDeviation(point.protein_g, range.protein_g_low, range.protein_g_high);
   const calorieLimit = CLARIFY_CALORIE_SHARE * totals.calories;
-  const calorieRatio = calorieLimit > 0 ? calorieSpan / calorieLimit : calorieSpan > 0 ? Infinity : 0;
-  return Math.max(calorieRatio, proteinSpan / CLARIFY_PROTEIN_G);
+  const calorieRatio = calorieLimit > 0 ? calorieDeviation / calorieLimit : calorieDeviation > 0 ? Infinity : 0;
+  return Math.max(calorieRatio, proteinDeviation / CLARIFY_PROTEIN_G);
 }
 
 // The rule decides, not the model's own flag, so the result is deterministic and testable. The
@@ -205,9 +218,6 @@ export function clarification(
   }
   if (!worst) return { needs_clarification: false, clarification_question: null };
 
-  const name = worst.food.name.toLowerCase();
-  const question =
-    meal.clarification_question?.trim() ||
-    (worst.food.inferred ? `Did it have ${name}, and about how much?` : `About how much ${name} did you have?`);
+  const question = meal.clarification_question?.trim() || `About how much ${worst.food.name.toLowerCase()} did you have?`;
   return { needs_clarification: true, clarification_question: question };
 }
