@@ -91,6 +91,14 @@ function fakeMealStore(initial: Meal[] = []) {
       throw new Error("searchHistory not stubbed");
     }),
     lastMatching: vi.fn(async (): Promise<LastMealMatch | null> => null),
+    // A PATCH from the app landing in another request: changes the row and bumps the version without
+    // going through the spies above.
+    userEdit: vi.fn((id: string, changes: Partial<Meal>): Meal => {
+      const current = meals.get(id)!;
+      const next = { ...current, ...changes, version: current.version + 1 };
+      meals.set(id, next);
+      return next;
+    }),
   };
   return store satisfies MealStore;
 }
@@ -443,6 +451,50 @@ describe("update_meal and delete_meal", () => {
       const store = fakeMealStore([burger()]);
       const result = await runTool(call("update_meal", { item_changes: [{ food_name: "salmon", remove: true }] }), context({ meals: store }), newTurnState());
       expect(result).toMatchObject({ isError: true, output: { error: expect.stringContaining("Ask the user which meal") } });
+    });
+
+    // PR #35's open question: with no meal_id the tool writes with the version it read from recent
+    // history. A user edit that commits in between must be caught by that version, with the user's
+    // edit kept and nothing in the turn claiming a change.
+    it("a user edit that lands after the tool picked the meal from history is rejected, never overwritten", async () => {
+      const target = { ...burger(), version: 3 };
+      const store = fakeMealStore([target, savedMeal(proposal("Oatmeal"), { consumed_at: "2026-10-26T07:00:00-07:00" })]);
+      store.recentMeals.mockImplementationOnce(async () => {
+        const seen = [target]; // what the tool reads: version 3
+        store.userEdit(target.id, { name: "Renamed in the app" }); // the user's PATCH commits first: version 4
+        return seen;
+      });
+      const state = newTurnState();
+      const result = await runTool(call("update_meal", { item_changes: [{ food_name: "cheese", remove: true }] }), context({ meals: store }), state);
+
+      expect(result.isError).toBe(true);
+      expect(result.output).toMatchObject({
+        error: expect.stringContaining("edited after version 3 and is now version 4"),
+        current_meal: { meal_id: target.id, version: 4, name: "Renamed in the app" },
+      });
+      // One write, carrying the version the tool read; the store's version check rejected it.
+      expect(store.updateMeal).toHaveBeenCalledTimes(1);
+      expect(store.updateMeal.mock.calls[0]![1]).toMatchObject({ version: 3 });
+      // The user's edit stands: still version 4, still renamed, the cheese still on the meal.
+      expect(await store.getMeal(target.id)).toMatchObject({
+        version: 4,
+        name: "Renamed in the app",
+        items: [expect.objectContaining({ food_name: "Hamburger bun" }), expect.objectContaining({ food_name: "American cheese" })],
+      });
+      // Nothing claims a change: no card, no changed flag, nothing in the turn's saved-meal list.
+      expect(state.cards).toEqual([]);
+      expect(state.mealChanged).toBe(false);
+      expect(state.meals.size).toBe(0);
+      expect(state.tools).toEqual([{ name: "update_meal", ok: false }]);
+    });
+
+    it("a version the model remembered without a meal_id is checked too: stale means nothing is written", async () => {
+      const target = { ...burger(), version: 4, name: "Renamed in the app" };
+      const store = fakeMealStore([target]);
+      const result = await runTool(call("update_meal", { version: 3, item_changes: [{ food_name: "cheese", remove: true }] }), context({ meals: store }), newTurnState());
+      expect(result.isError).toBe(true);
+      expect(result.output).toMatchObject({ error: expect.stringContaining("now version 4"), current_meal: { meal_id: target.id, version: 4 } });
+      expect(store.updateMeal).not.toHaveBeenCalled();
     });
   });
 
