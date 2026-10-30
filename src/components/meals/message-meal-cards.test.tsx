@@ -152,9 +152,12 @@ it("discarding a proposal excludes it from Save all and survives a server-prop r
 it("saves edited proposal details through the full editor", async () => {
   mount();
   fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-  fireEvent.change(screen.getByLabelText("Meal name"), {
-    target: { value: "Late breakfast" },
-  });
+  fireEvent.change(
+    await screen.findByLabelText("Meal name", {}, { timeout: 5000 }),
+    {
+      target: { value: "Late breakfast" },
+    },
+  );
   fireEvent.change(screen.getByLabelText("Consumed at"), {
     target: { value: "2026-10-25T09:00" },
   });

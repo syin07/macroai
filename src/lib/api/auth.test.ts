@@ -1,38 +1,75 @@
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { authClient, authError, AuthUiError } from "./auth";
 import { createMockAuth } from "@/mocks/auth";
-import { signOut } from "@/lib/auth/client";
-vi.mock("@/lib/auth/client", () => ({ signOut: vi.fn(async () => {}) }));
+import * as realAuth from "@/lib/auth/client";
+vi.mock("@/lib/auth/client", () => ({
+  signOut: vi.fn(async () => {}),
+  signInWithGoogle: vi.fn(async () => {}),
+  signInWithPassword: vi.fn(async () => {}),
+  signUp: vi.fn(async () => {}),
+  sendPasswordReset: vi.fn(async () => {}),
+  updatePassword: vi.fn(async () => {}),
+  getSession: vi.fn(async () => null),
+}));
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(realAuth.getSession).mockResolvedValue(null);
+});
 it("delegates production sign-out to Sandy's auth helper", async () => {
   vi.stubEnv("NODE_ENV", "production");
   await authClient.signOut();
-  expect(signOut).toHaveBeenCalledOnce();
+  expect(realAuth.signOut).toHaveBeenCalledOnce();
 });
 
 afterEach(() => vi.unstubAllEnvs());
 
-it("fails closed in production even when NEXT_PUBLIC_USE_MOCKS is set", async () => {
+it("uses real helpers in production even when NEXT_PUBLIC_USE_MOCKS is set", async () => {
   vi.stubEnv("NODE_ENV", "production");
   vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "1");
-  await expect(
-    authClient.signInWithPassword("test@example.com", "test-only-password"),
-  ).rejects.toMatchObject({ code: "unavailable" });
-  await expect(
-    authClient.signUp("test@example.com", "test-only-password"),
-  ).rejects.toMatchObject({ code: "unavailable" });
-  await expect(
-    authClient.updatePassword("test-only-password"),
-  ).rejects.toMatchObject({ code: "unavailable" });
-  await expect(authClient.getSession()).rejects.toMatchObject({
-    code: "unavailable",
-  });
+  await authClient.signInWithPassword("test@example.com", "test-only-password");
+  await authClient.signUp("test@example.com", "test-only-password");
+  await authClient.signInWithGoogle();
+  await authClient.sendPasswordReset("test@example.com");
+  await expect(authClient.getSession()).resolves.toBeNull();
+  expect(realAuth.signInWithPassword).toHaveBeenCalledWith(
+    "test@example.com",
+    "test-only-password",
+  );
+  expect(realAuth.signUp).toHaveBeenCalledWith(
+    "test@example.com",
+    "test-only-password",
+  );
+  expect(realAuth.signInWithGoogle).toHaveBeenCalledOnce();
+  expect(realAuth.sendPasswordReset).toHaveBeenCalledWith("test@example.com");
 });
 
 it("does not enable auth stubs without explicit mock mode", async () => {
   vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "0");
-  await expect(authClient.signInWithGoogle()).rejects.toMatchObject({
-    code: "unavailable",
+  await authClient.signInWithGoogle();
+  expect(realAuth.signInWithGoogle).toHaveBeenCalledOnce();
+});
+
+it("rechecks a verified recovery session before calling the real password update helper", async () => {
+  vi.stubEnv("NODE_ENV", "production");
+  await expect(
+    authClient.updatePassword("test-only-password"),
+  ).rejects.toMatchObject({ code: "invalid_recovery" });
+  expect(realAuth.updatePassword).not.toHaveBeenCalled();
+  vi.mocked(realAuth.getSession).mockResolvedValue({
+    email: "ken@example.test",
+    approved: true,
+    recovery: false,
   });
+  await expect(
+    authClient.updatePassword("test-only-password"),
+  ).rejects.toMatchObject({ code: "invalid_recovery" });
+  vi.mocked(realAuth.getSession).mockResolvedValue({
+    email: "ken@example.test",
+    approved: true,
+    recovery: true,
+  });
+  await authClient.updatePassword("test-only-password");
+  expect(realAuth.updatePassword).toHaveBeenCalledOnce();
 });
 
 it("requires a recovery session and consumes it after an update", async () => {

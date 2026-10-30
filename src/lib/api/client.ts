@@ -22,7 +22,10 @@ export interface RequestOptions {
 }
 
 export function isMockMode() {
-  return process.env.NEXT_PUBLIC_USE_MOCKS === "1";
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.NEXT_PUBLIC_USE_MOCKS === "1"
+  );
 }
 
 // During integration, opt individual calls out of mock mode with { mock: false }.
@@ -46,7 +49,10 @@ export async function request<T>(
   };
   let response: Response;
   try {
-    if (options.mock ?? isMockMode()) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      (options.mock ?? isMockMode())
+    ) {
       const { mockApi } = await import("@/mocks/server");
       response = await mockApi.handle(
         new Request(`http://macroai.mock${path}`, init),

@@ -7,6 +7,22 @@ const route = vi.hoisted(() => ({ pathname: "/chat" }));
 vi.mock("next/navigation", () => ({ usePathname: () => route.pathname }));
 afterEach(cleanup);
 
+it("moves focus to main after an app route change", () => {
+  route.pathname = "/chat";
+  const view = render(
+    <AppShell>
+      <h1>Chat</h1>
+    </AppShell>,
+  );
+  route.pathname = "/history";
+  view.rerender(
+    <AppShell>
+      <h1>History</h1>
+    </AppShell>,
+  );
+  expect(document.activeElement).toBe(screen.getByRole("main"));
+});
+
 it.each(["chat", "history", "insights", "settings"])(
   "marks only %s current in each navigation",
   (page) => {

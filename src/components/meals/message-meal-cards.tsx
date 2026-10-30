@@ -14,7 +14,8 @@ import type {
 } from "@/types/api";
 import { useState } from "react";
 import { MealCard } from "./meal-card";
-import { MealEditor, type EditorTarget } from "./meal-editor";
+import type { EditorTarget } from "./meal-editor";
+import { MealEditor } from "./lazy-meal-editor";
 
 type ProposalUi = {
   discarded?: boolean;

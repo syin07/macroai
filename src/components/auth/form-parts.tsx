@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input";
 import { authPreviewEnabled, type AuthUiError } from "@/lib/api/auth";
 
 export function AuthNotice() {
+  if (process.env.NODE_ENV === "production" || !authPreviewEnabled())
+    return null;
   return (
     <p
       className="mb-6 rounded-xl border border-[var(--app-line)] px-3 py-2.5 text-xs leading-5 text-muted-foreground"
       role="status"
     >
-      {authPreviewEnabled()
-        ? "Preview only. No accounts are created, no emails are sent, and sessions reset on reload. Use a test password."
-        : "Account access is temporarily unavailable. Please try again later."}
+      Preview only. No accounts are created, no emails are sent, and sessions
+      reset on reload. Use a test password.
     </p>
   );
 }
@@ -49,6 +50,8 @@ export function AuthField({
         autoCapitalize="none"
         spellCheck={false}
         aria-invalid={!!error}
+        required
+        aria-required="true"
         aria-describedby={
           [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
             .filter(Boolean)

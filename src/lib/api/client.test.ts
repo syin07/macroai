@@ -122,6 +122,15 @@ describe("typed API transport", () => {
     expect(transport).not.toHaveBeenCalled();
   });
 
+  it("ignores both the mock env flag and a per-call override in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "1");
+    expect(api.isMockMode()).toBe(false);
+    await api.getMe();
+    await api.getMe({ mock: true });
+    expect(transport).toHaveBeenCalledTimes(2);
+  });
+
   it("downloads blobs and treats 204 responses as void", async () => {
     const memory = (await api.getMemories()).memories[0];
     expect(await api.deleteMemory(memory.id)).toBeUndefined();

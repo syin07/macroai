@@ -16,6 +16,7 @@ import {
   PageFrame,
 } from "@/components/shared/page-frame";
 import { action } from "@/components/settings/settings-shared";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 const number = (value: number) =>
   new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
@@ -53,9 +54,10 @@ function RecordedDay({ date }: { date: string }) {
       ) : (
         <td colSpan={2} className="py-3 text-right text-sm">
           {daily.isFetching ? (
-            <span role="status" className="text-muted-foreground">
-              Loading totals…
-            </span>
+            <LoadingSkeleton
+              label={`Loading totals for ${dateLabel(date)}…`}
+              kind="summary"
+            />
           ) : (
             <>
               <span className="sr-only" role="alert">
@@ -166,12 +168,12 @@ export function InsightsScreen() {
           </table>
         )}
         {loading && (
-          <p
-            role="status"
-            className="mt-6 rounded-xl bg-[var(--app-surface)] p-4 text-sm text-muted-foreground"
-          >
-            Finding your recorded days…
-          </p>
+          <LoadingSkeleton
+            label="Finding your recorded days…"
+            kind="rows"
+            rows={Math.max(1, 7 - dates.length)}
+            className="mt-6"
+          />
         )}
         {!!timezone && meals.isError && (
           <div role="alert" className="mt-5 text-sm">

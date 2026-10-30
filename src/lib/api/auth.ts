@@ -41,11 +41,7 @@ export function authPreviewEnabled() {
 }
 async function adapter(): Promise<AuthAdapter> {
   if (authPreviewEnabled()) return (await import("@/mocks/auth")).mockAuth;
-  // Remaining A4 operations still need real-helper wiring. Never simulate production authentication.
-  throw new AuthUiError(
-    "unavailable",
-    "Account access is temporarily unavailable. Please try again later.",
-  );
+  return import("@/lib/auth/client");
 }
 export const authClient: AuthAdapter = {
   async signInWithGoogle() {
@@ -61,11 +57,16 @@ export const authClient: AuthAdapter = {
     return (await adapter()).sendPasswordReset(email);
   },
   async updatePassword(password) {
-    return (await adapter()).updatePassword(password);
+    const driver = await adapter();
+    if (!(await driver.getSession())?.recovery)
+      throw new AuthUiError(
+        "invalid_recovery",
+        "This reset link is invalid or has expired. Request a new one.",
+      );
+    return driver.updatePassword(password);
   },
   async signOut() {
-    if (authPreviewEnabled()) return (await adapter()).signOut();
-    return (await import("@/lib/auth/client")).signOut();
+    return (await adapter()).signOut();
   },
   async getSession() {
     return (await adapter()).getSession();

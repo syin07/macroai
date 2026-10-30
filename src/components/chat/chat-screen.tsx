@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 
 import {
   useEffect,
@@ -12,11 +13,19 @@ import { ApiClientError, createChatDraft, type ChatDraft } from "@/lib/api";
 import { useMessages, useSendChat, useManualMessages } from "@/hooks/use-api";
 import type { ChatMessage } from "@/types/api";
 import { Brand } from "@/components/shared/brand";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 import { HeaderLink } from "@/components/shared/page-frame";
 import { MessageMealCards } from "@/components/meals/message-meal-cards";
 import { PhotoInput } from "./photo-input";
 import { DailyStrip } from "./daily-strip";
-import { ManualLog } from "./manual-log";
+const ManualLog = dynamic(
+  () => import("./manual-log").then((module) => module.ManualLog),
+  {
+    loading: () => (
+      <LoadingSkeleton label="Opening manual entry…" className="p-5" />
+    ),
+  },
+);
 import { nearBottom } from "./scroll-position";
 import { messageSource } from "./message-source";
 
@@ -222,12 +231,11 @@ export function ChatScreen() {
         <div className="mx-auto max-w-2xl py-6">
           <h1 className="sr-only">Chat</h1>
           {history.isPending && (
-            <p
-              role="status"
-              className="py-12 text-center text-sm text-muted-foreground"
-            >
-              Loading your conversation…
-            </p>
+            <LoadingSkeleton
+              label="Loading your conversation…"
+              kind="chat"
+              className="min-h-80 py-4"
+            />
           )}
           {historyUnavailable && (
             <div role="alert" className="py-8 text-center">

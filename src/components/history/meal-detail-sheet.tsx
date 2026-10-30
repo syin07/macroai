@@ -1,11 +1,12 @@
 "use client";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 import { useEffect, useState, type RefObject } from "react";
 import { ApiClientError } from "@/lib/api";
 import { useMeal, useMealActions } from "@/hooks/use-api";
 import { MealCard } from "@/components/meals/meal-card";
 import { MealActions } from "@/components/meals/meal-actions";
-import { MealEditor } from "@/components/meals/meal-editor";
+import { MealEditor } from "@/components/meals/lazy-meal-editor";
 import {
   Sheet,
   SheetContent,
@@ -94,12 +95,7 @@ export function MealDetailSheet({
               This meal is no longer available.
             </p>
           ) : detail.isPending && !meal ? (
-            <p
-              role="status"
-              className="min-h-56 py-6 text-sm text-muted-foreground"
-            >
-              Loading meal…
-            </p>
+            <LoadingSkeleton label="Loading meal…" className="min-h-56 py-6" />
           ) : detail.isError && !meal ? (
             <div role="alert" className="py-6">
               <p>This meal couldn’t load.</p>

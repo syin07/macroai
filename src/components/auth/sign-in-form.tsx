@@ -8,12 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { z } from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  authClient,
-  authError,
-  authPreviewEnabled,
-  AuthUiError,
-} from "@/lib/api/auth";
+import { authClient, authError, AuthUiError } from "@/lib/api/auth";
 import { signInSchema } from "./schemas";
 import {
   AuthErrorNotice,
@@ -43,6 +38,7 @@ export function SignInForm() {
         true,
       );
     form.reset();
+    await client.cancelQueries();
     client.clear();
     router.replace(session.approved ? "/chat" : "/not-approved");
     router.refresh();
@@ -71,7 +67,7 @@ export function SignInForm() {
       setPending(null);
     }
   }
-  const disabled = !!pending || !authPreviewEnabled();
+  const disabled = !!pending;
   return (
     <div className="space-y-5">
       <AuthNotice />

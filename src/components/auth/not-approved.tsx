@@ -4,13 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {
-  authClient,
-  authError,
-  authPreviewEnabled,
-  type AuthUiError,
-} from "@/lib/api/auth";
+import { authClient, authError, type AuthUiError } from "@/lib/api/auth";
 import { AuthErrorNotice, AuthNotice, BackToSignIn } from "./form-parts";
+import { LoadingSkeleton } from "@/components/shared/loading-skeleton";
 
 export function NotApproved() {
   const router = useRouter(),
@@ -20,7 +16,6 @@ export function NotApproved() {
   const session = useQuery({
     queryKey: ["auth", "session"],
     queryFn: () => authClient.getSession(),
-    enabled: authPreviewEnabled(),
     retry: false,
     gcTime: 0,
   });
@@ -29,6 +24,7 @@ export function NotApproved() {
     setError(null);
     try {
       await authClient.signOut();
+      await client.cancelQueries();
       client.clear();
       router.replace("/sign-in");
       router.refresh();
@@ -40,10 +36,8 @@ export function NotApproved() {
   return (
     <div className="space-y-5">
       <AuthNotice />
-      {!authPreviewEnabled() ? (
-        <BackToSignIn />
-      ) : session.isPending ? (
-        <p role="status">Loading account…</p>
+      {session.isPending ? (
+        <LoadingSkeleton label="Loading account…" rows={2} />
       ) : session.error ? (
         <AuthErrorNotice
           error={authError(session.error)}
