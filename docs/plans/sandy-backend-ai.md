@@ -175,7 +175,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 ## B15 — Security, eval, release
 
-- [ ] Security tests (PRD §16.4): cross-account read/write through every API route with a second session; unapproved account blocked; grep the built client bundle (`.next/static`) for key prefixes; error responses contain no stack traces.
+- [x] Security tests (PRD §16.4): cross-account read/write through every API route with a second session; unapproved account blocked; grep the built client bundle (`.next/static`) for key prefixes; error responses contain no stack traces.
 - [ ] Re-run the full eval set on the final prompts; update `docs/bakeoff-results.md`.
 - [ ] Apply migrations to `macroai-prod` (`supabase db push`), seed `approved_emails`, set the prod env vars, and add the Vercel Cron.
 - [ ] Release checklist with Ken: PRD §19 Definition of Done, line by line.
