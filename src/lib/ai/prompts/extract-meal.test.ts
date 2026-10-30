@@ -21,8 +21,8 @@ describe("EXTRACT_MEAL_SYSTEM_PROMPT", () => {
     expect(examples().length).toBeGreaterThanOrEqual(2);
   });
 
-  it("is versioned past v1 for the B9 photo rules", () => {
-    expect(EXTRACT_MEAL_PROMPT_VERSION).toBe("extract-meal-v2");
+  it("is versioned past v2 for the narrowed example ranges (FR-03 deviation rule)", () => {
+    expect(EXTRACT_MEAL_PROMPT_VERSION).toBe("extract-meal-v3");
   });
 
   it("tells the model to list hidden fats and sauces in photos as separate low-confidence inferred items", () => {

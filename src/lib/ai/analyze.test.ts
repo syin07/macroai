@@ -5,13 +5,15 @@ import { ApiErrorException } from "@/lib/api-error";
 import { itemMacros, mealTotals } from "@/lib/nutrition/calc";
 import { UsdaError, type NutritionLookup, type UsdaFood } from "@/lib/nutrition/usda";
 import { mealProposalSchema } from "@/lib/validation";
-import { analyzeMeal, clarification, type AnalyzeMealDeps } from "./analyze";
+import { analyzeMeal, clarification, estimateDeviation, type AnalyzeMealDeps } from "./analyze";
 import {
   ExtractionOutputError,
+  extractionResultSchema,
   type ExtractedFood,
   type ExtractedMeal,
   type ExtractionResult,
 } from "./extraction";
+import { EXTRACT_MEAL_SYSTEM_PROMPT } from "./prompts/extract-meal";
 import type { AIProvider, ExtractMealInput, ExtractMealOutput } from "./provider";
 import { createUsageRecorder, usageRow, type UsageEntry } from "./usage";
 
@@ -310,43 +312,79 @@ describe("analyzeMeal: AI-only fallback", () => {
 });
 
 describe("clarification rule (PRD FR-03)", () => {
+  // 500 kcal meal: an item's estimate may be off by up to 100 kcal, or 15 g protein, in either direction.
   const totals = macros(500, 40, 50, 15);
-  const withRange = (calories_low: number, calories_high: number, protein_g_low = 10, protein_g_high = 12, fields: Partial<ExtractedFood> = {}) =>
-    extractedFood({ name: "Chicken", search_query: "chicken", estimate_range: { calories_low, calories_high, protein_g_low, protein_g_high }, ...fields });
-
-  it("does not ask when every item is within 20% of meal calories and 15 g protein", () => {
-    expect(clarification({ foods: [withRange(200, 300, 10, 25)], clarification_question: null }, totals)).toEqual({
-      needs_clarification: false,
-      clarification_question: null,
+  // A food whose point estimate sits at `point` in its range, or at the midpoint when not given.
+  const withRange = (
+    calories_low: number,
+    calories_high: number,
+    protein_g_low = 10,
+    protein_g_high = 12,
+    fields: Partial<ExtractedFood> & { point?: { calories: number; protein_g: number } } = {},
+  ) => {
+    const { point, ...rest } = fields;
+    return extractedFood({
+      name: "Chicken",
+      search_query: "chicken",
+      estimated_macros: macros(
+        point?.calories ?? (calories_low + calories_high) / 2,
+        point?.protein_g ?? (protein_g_low + protein_g_high) / 2,
+        0,
+        0,
+      ),
+      estimate_range: { calories_low, calories_high, protein_g_low, protein_g_high },
+      ...rest,
     });
+  };
+  const ask = (foods: ExtractedFood[], clarification_question: string | null = null) => clarification({ foods, clarification_question }, totals);
+
+  it("measures the larger deviation from the point estimate, never a negative one", () => {
+    expect(estimateDeviation(600, 400, 900)).toBe(300);
+    expect(estimateDeviation(248, 165, 330)).toBe(83);
+    expect(estimateDeviation(100, 100, 100)).toBe(0);
+    expect(estimateDeviation(50, 100, 120)).toBe(70); // point below its own bounds: the far side counts
   });
 
-  it("asks when one item's calorie range spans more than 20% of the meal", () => {
-    const result = clarification({ foods: [withRange(100, 110), withRange(200, 301, 10, 12, { name: "Fried rice" })], clarification_question: null }, totals);
+  it("does not ask when every item's estimate is within 20% of meal calories and 15 g protein of its bounds", () => {
+    expect(ask([withRange(200, 300, 10, 25)])).toEqual({ needs_clarification: false, clarification_question: null });
+    // A 180 kcal span would have asked under the old full-span rule; 90 kcal either way is within 100.
+    expect(ask([withRange(160, 340, 10, 12)]).needs_clarification).toBe(false);
+  });
+
+  it("asks when one item's estimate could be off by more than 20% of the meal's calories", () => {
+    const result = ask([withRange(100, 110), withRange(250, 401, 10, 12, { name: "Fried rice", point: { calories: 300, protein_g: 11 } })]);
     expect(result).toEqual({ needs_clarification: true, clarification_question: "About how much fried rice did you have?" });
   });
 
-  it("asks when one item's protein range spans more than 15 g", () => {
-    expect(clarification({ foods: [withRange(240, 260, 30, 45.5)], clarification_question: null }, totals).needs_clarification).toBe(true);
+  it("asks when one item's protein estimate could be off by more than 15 g", () => {
+    expect(ask([withRange(240, 260, 30, 45.5, { point: { calories: 250, protein_g: 30 } })]).needs_clarification).toBe(true);
+    expect(ask([withRange(240, 260, 30, 45.5)]).needs_clarification).toBe(false); // midpoint: 7.75 g either way
+  });
+
+  it("'a bowl of pasta' at 400–900 kcal around 600 still asks", () => {
+    const pasta = withRange(400, 900, 12, 30, { name: "Pasta", point: { calories: 600, protein_g: 20 } });
+    expect(clarification({ foods: [pasta], clarification_question: null }, macros(600, 20, 90, 10))).toEqual({
+      needs_clarification: true,
+      clarification_question: "About how much pasta did you have?",
+    });
   });
 
   it("asks about the most uncertain item, and keeps the model's question when it wrote one", () => {
-    const foods = [withRange(200, 320, 10, 12, { name: "Rice" }), withRange(100, 400, 10, 12, { name: "Burger" })];
-    expect(clarification({ foods, clarification_question: null }, totals).clarification_question).toBe("About how much burger did you have?");
-    expect(clarification({ foods, clarification_question: "Which restaurant was the burger from?" }, totals).clarification_question).toBe(
-      "Which restaurant was the burger from?",
-    );
+    const foods = [withRange(200, 420, 10, 12, { name: "Rice" }), withRange(100, 400, 10, 12, { name: "Burger" })];
+    expect(ask(foods).clarification_question).toBe("About how much burger did you have?");
+    expect(ask(foods, "Which restaurant was the burger from?").clarification_question).toBe("Which restaurant was the burger from?");
   });
 
-  it("phrases the question for a hidden ingredient", () => {
-    const oil = withRange(0, 150, 0, 0, { name: "Cooking oil", inferred: true });
-    expect(clarification({ foods: [oil], clarification_question: null }, totals).clarification_question).toBe(
-      "Did it have cooking oil, and about how much?",
-    );
+  it("ignores inferred hidden ingredients, however wide their range", () => {
+    const oil = withRange(0, 150, 0, 0, { name: "Cooking oil", inferred: true, point: { calories: 40, protein_g: 0 } });
+    expect(ask([oil])).toEqual({ needs_clarification: false, clarification_question: null });
+    expect(ask([withRange(240, 260), oil]).needs_clarification).toBe(false);
+    // The same range on a stated item does ask.
+    expect(ask([{ ...oil, inferred: false }]).needs_clarification).toBe(true);
   });
 
   it("overrides the model's flag both ways", () => {
-    expect(clarification({ foods: [withRange(240, 260)], clarification_question: "How big was it?" }, totals).needs_clarification).toBe(false);
+    expect(ask([withRange(240, 260)], "How big was it?").needs_clarification).toBe(false);
   });
 
   it("is applied to the meal's computed totals in analyzeMeal", async () => {
@@ -354,6 +392,38 @@ describe("clarification rule (PRD FR-03)", () => {
     const { run } = setup([logged(meal({ name: "Eggs and Toast", foods: [vague, toast] }))]);
     const [proposal] = (await run("some eggs and toast")).proposals;
     expect(proposal).toMatchObject({ needs_clarification: true, clarification_question: "About how much hard-boiled eggs did you have?" });
+  });
+
+  describe("the prompt's own chicken-and-rice example", () => {
+    const example = () => {
+      const line = EXTRACT_MEAL_SYSTEM_PROMPT.split("\n").find((l) => l.startsWith('{"intent":"log_meal"'));
+      const [chickenAndRice] = extractionResultSchema.parse(JSON.parse(line!)).meals;
+      return chickenAndRice!;
+    };
+
+    it("does not ask under the rule alone, with the model's own totals", () => {
+      const chickenAndRice = example();
+      expect(chickenAndRice.foods.map((f) => [f.name, f.inferred])).toEqual([
+        ["Grilled chicken breast", false],
+        ["Cooked white rice", false],
+        ["Cooking oil", true],
+      ]);
+      const modelTotals = mealTotals(chickenAndRice.foods.map((f) => ({ macros: f.estimated_macros })));
+      expect(clarification(chickenAndRice, modelTotals)).toEqual({ needs_clarification: false, clarification_question: null });
+    });
+
+    it("auto-saves through analyzeMeal with USDA matches, keeping the inferred oil in the meal", async () => {
+      const lookup = fakeLookup({ "chicken, breast, grilled": [CHICKEN], "rice, white, cooked": [RICE] });
+      const { run } = setup([logged(example())], { lookup });
+      const [proposal] = (await run("had grilled chicken and rice for lunch")).proposals;
+      expect(proposal).toMatchObject({ needs_clarification: false, clarification_question: null });
+      expect(proposal!.items.map((i) => [i.food_name, i.inferred, i.nutrition_source])).toEqual([
+        ["Grilled chicken breast", false, "usda"],
+        ["Cooked white rice", false, "usda"],
+        ["Cooking oil", true, "ai"],
+      ]);
+      expect(proposal!.totals).toEqual(mealTotals(proposal!.items));
+    });
   });
 });
 

@@ -4,7 +4,10 @@ import type { ExtractMealInput } from "../provider";
 // bake-off results and ai_usage rows can be tied to the prompt that produced them.
 // v2 (B9): photo rules — hidden fats and sauces as separate low-confidence inferred items, and an
 // unreadable or non-food photo returns no meals with a short explanation.
-export const EXTRACT_MEAL_PROMPT_VERSION = "extract-meal-v2";
+// v3: the worked example's estimate_range bounds narrowed so the example itself passes the FR-03 rule in
+// analyze.ts (deviation from the point estimate within 20% of meal calories and 15 g protein). Rules
+// unchanged.
+export const EXTRACT_MEAL_PROMPT_VERSION = "extract-meal-v3";
 
 // Static so providers can cache it; everything per-request goes in the user turn.
 export const EXTRACT_MEAL_SYSTEM_PROMPT = `You extract foods from a user's message and/or meal photo for a calorie and macro tracker.
@@ -64,7 +67,7 @@ Photo only, too dark to tell what the food is:
 {"intent":"other","meals":[],"explanation":"I can't make out the food in this photo. Could you describe it or try a brighter shot?"}
 
 Message: "had grilled chicken and rice for lunch"
-{"intent":"log_meal","meals":[{"name":"Chicken and Rice","consumed_at":null,"time_phrase":"for lunch","foods":[{"name":"Grilled chicken breast","brand":null,"quantity":150,"unit":"g","grams":150,"preparation":"grilled","estimated_quantity":true,"inferred":false,"confidence":"medium","search_query":"chicken, breast, grilled","estimated_macros":{"calories":248,"protein_g":46,"carbs_g":0,"fat_g":5},"estimate_range":{"calories_low":165,"calories_high":330,"protein_g_low":31,"protein_g_high":62},"notes":"Assumed one medium breast"},{"name":"Cooked white rice","brand":null,"quantity":1,"unit":"cup","grams":160,"preparation":"boiled","estimated_quantity":true,"inferred":false,"confidence":"medium","search_query":"rice, white, cooked","estimated_macros":{"calories":208,"protein_g":4,"carbs_g":45,"fat_g":0.5},"estimate_range":{"calories_low":130,"calories_high":310,"protein_g_low":3,"protein_g_high":6},"notes":"Assumed 1 cup"},{"name":"Cooking oil","brand":null,"quantity":1,"unit":"tsp","grams":4.5,"preparation":null,"estimated_quantity":true,"inferred":true,"confidence":"low","search_query":"oil, vegetable","estimated_macros":{"calories":40,"protein_g":0,"carbs_g":0,"fat_g":4.5},"estimate_range":{"calories_low":0,"calories_high":120,"protein_g_low":0,"protein_g_high":0},"notes":"Grilled chicken is usually oiled; assumed 1 tsp"}],"needs_clarification":false,"clarification_question":null}],"explanation":null}`;
+{"intent":"log_meal","meals":[{"name":"Chicken and Rice","consumed_at":null,"time_phrase":"for lunch","foods":[{"name":"Grilled chicken breast","brand":null,"quantity":150,"unit":"g","grams":150,"preparation":"grilled","estimated_quantity":true,"inferred":false,"confidence":"medium","search_query":"chicken, breast, grilled","estimated_macros":{"calories":248,"protein_g":46,"carbs_g":0,"fat_g":5},"estimate_range":{"calories_low":190,"calories_high":310,"protein_g_low":36,"protein_g_high":57},"notes":"Assumed one medium breast"},{"name":"Cooked white rice","brand":null,"quantity":1,"unit":"cup","grams":160,"preparation":"boiled","estimated_quantity":true,"inferred":false,"confidence":"medium","search_query":"rice, white, cooked","estimated_macros":{"calories":208,"protein_g":4,"carbs_g":45,"fat_g":0.5},"estimate_range":{"calories_low":140,"calories_high":280,"protein_g_low":3,"protein_g_high":5},"notes":"Assumed 1 cup"},{"name":"Cooking oil","brand":null,"quantity":1,"unit":"tsp","grams":4.5,"preparation":null,"estimated_quantity":true,"inferred":true,"confidence":"low","search_query":"oil, vegetable","estimated_macros":{"calories":40,"protein_g":0,"carbs_g":0,"fat_g":4.5},"estimate_range":{"calories_low":0,"calories_high":120,"protein_g_low":0,"protein_g_high":0},"notes":"Grilled chicken is usually oiled; assumed 1 tsp"}],"needs_clarification":false,"clarification_question":null}],"explanation":null}`;
 
 // Our delimiter tags, removed from user-supplied text so it can't close a block early.
 const DELIMITER_TAGS = /<\/?\s*(user_message|memories|memory|context)\b[^>]*>/gi;

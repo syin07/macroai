@@ -412,7 +412,7 @@ When portion size is uncertain, use a reasonable estimate and expose the assumpt
 
 Ask clarifying questions only if uncertainty could significantly change the calculated nutrition.
 
-For the MVP, define materially significant uncertainty as an estimated difference greater than approximately 20% of meal calories or 15 g of protein. These are product heuristics, not scientific confidence guarantees.
+For the MVP, an item's uncertainty is materially significant when its estimate could be off by more than approximately 20% of meal calories or 15 g of protein in either direction: the larger deviation of the item's low or high bound from its point estimate, not the full low-to-high span, and inferred hidden ingredients (oil, butter, sauce) stay in the meal but are not counted (§23, 2026-10-29). These are product heuristics, not scientific confidence guarantees.
 
 ### Acceptance Criteria
 
@@ -2123,10 +2123,14 @@ Its initial release focuses on accurate-enough, convenient food logging and a cl
 - 2026-10-26: Photos are sent straight to the model and never stored by default; temporary storage only if required, with v1.0's deletion rules.
 - 2026-10-26: Web-search lookup for restaurant/branded items is P1; AI-only labeled fallback is in the MVP.
 - 2026-10-26: Roles: Sandy owns backend and AI pipeline; Ken owns frontend.
+- 2026-10-29: **FR-03 clarification rule favours auto-save.** An item's uncertainty is the larger deviation of its low/high bound from its point estimate (not the full span), checked against 20% of meal calories or 15 g protein, and inferred hidden ingredients are not measured (they stay in the meal as editable low-confidence items). The full-span rule tripped on the prompt's own chicken-and-rice example and on most inferred oil items, so auto-save mode asked instead of saving. The extraction prompt's worked example was narrowed to match (`extract-meal-v3`). Code: `src/lib/ai/analyze.ts`.
+- 2026-10-29: **B5: USDA FoodData Central stays a live API** with the existing `nutrition_cache` (`src/lib/nutrition/cache.ts`); no local copy of the dataset. Two users and a per-food cache keep well under the 1,000 requests/hour limit, and the bake-off showed no latency problem.
+- 2026-10-29: **B14: deleting an account leaves the email in `approved_emails`.** The allow-list is an admin concern (who may sign up), not user data; removing a person from it is a separate admin action. Documented in `src/lib/database/account.ts`.
+- 2026-10-29: **Deployment: the Vercel project stays on the Hobby plan under Sandy's account.** Ken is not a project member, so Ken's preview deployments fail, and that is accepted. Sandy deploys; Ken verifies locally and on Sandy's preview URLs.
 
 ## Open Questions
 
-- **USDA data:** call the API per request, or load the downloaded dataset into Supabase? (Sandy decides during step B5.)
+- None open as of 2026-10-29. (USDA API vs. local copy was decided above under B5.)
 
 ---
 
