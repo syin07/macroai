@@ -23,7 +23,7 @@ it("moves focus to main after an app route change", () => {
   expect(document.activeElement).toBe(screen.getByRole("main"));
 });
 
-it.each(["chat", "history", "insights", "settings"])(
+it.each(["today", "chat", "history", "insights", "settings"])(
   "marks only %s current in each navigation",
   (page) => {
     route.pathname = `/${page}`;
@@ -37,6 +37,7 @@ it.each(["chat", "history", "insights", "settings"])(
     })) {
       const links = within(navigation).getAllByRole("link");
       expect(links.map((link) => link.getAttribute("href"))).toEqual([
+        "/today",
         "/chat",
         "/history",
         "/insights",

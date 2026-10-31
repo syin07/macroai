@@ -128,7 +128,7 @@ it("skips optional stats and targets, saves the selected mode, completes and nav
   await saveMode();
   fireEvent.click(screen.getByRole("radio", { name: /Auto-save/ }));
   click("Finish setup");
-  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/chat"));
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/today"));
   expect(api.suggestGoals).not.toHaveBeenCalled();
   expect(api.putGoals).not.toHaveBeenCalled();
   expect(api.patchPreferences).toHaveBeenLastCalledWith({ save_mode: "auto" });
@@ -195,7 +195,7 @@ it("does not call completion if the mode save fails; retains the choice for retr
       .checked,
   ).toBe(true);
   click("Finish setup");
-  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/chat"));
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/today"));
 });
 it("retries completion without rewriting an already saved mode", async () => {
   vi.mocked(api.completeOnboarding).mockRejectedValueOnce(new Error("offline"));
@@ -205,7 +205,7 @@ it("retries completion without rewriting an already saved mode", async () => {
   await screen.findByRole("alert");
   expect(nav.replace).not.toHaveBeenCalled();
   click("Finish setup");
-  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/chat"));
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/today"));
   expect(api.completeOnboarding).toHaveBeenCalledTimes(2);
   expect(api.patchPreferences).toHaveBeenCalledTimes(2); // time zone + mode
 });
@@ -225,7 +225,7 @@ it("blocks duplicate finish requests while completion is pending", async () => {
   click("Finishing setup…");
   expect(api.completeOnboarding).toHaveBeenCalledTimes(1);
   await act(async () => resolve({ ...me, onboarding_complete: true }));
-  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/chat"));
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/today"));
 });
 it("retries initial setup loading", async () => {
   vi.mocked(api.getGoals).mockRejectedValueOnce(new Error("offline"));
@@ -272,7 +272,7 @@ it("allows incomplete accounts on onboarding and redirects completed accounts to
   act(() =>
     client.setQueryData(queryKeys.me, { ...me, onboarding_complete: true }),
   );
-  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/chat"));
+  await waitFor(() => expect(nav.replace).toHaveBeenCalledWith("/today"));
 });
 it("allows completed accounts through and offers retry when me fails", async () => {
   vi.mocked(api.getMe).mockRejectedValueOnce(new Error("offline"));

@@ -40,7 +40,7 @@ export function SignInForm() {
     form.reset();
     await client.cancelQueries();
     client.clear();
-    router.replace(session.approved ? "/chat" : "/not-approved");
+    router.replace(session.approved ? "/today" : "/not-approved");
     router.refresh();
   }
   const submit = form.handleSubmit(async (values) => {

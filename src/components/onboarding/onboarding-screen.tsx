@@ -301,7 +301,7 @@ function OnboardingFlow({
               await client.cancelQueries({ queryKey: queryKeys.me });
               client.setQueryData(queryKeys.me, me);
               if (onFinished) onFinished();
-              else router.replace("/chat");
+              else router.replace("/today");
             });
           }}
         >

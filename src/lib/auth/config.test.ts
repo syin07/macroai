@@ -19,8 +19,8 @@ describe("safeNextPath", () => {
     "/\\evil.example",
     "/\t/evil.example",
     "javascript:alert(1)",
-  ])("falls back to /chat for %j", (next) => {
-    expect(safeNextPath(next)).toBe("/chat");
+  ])("falls back to /today for %j", (next) => {
+    expect(safeNextPath(next)).toBe("/today");
   });
 });
 

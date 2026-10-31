@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MacroAI",
     short_name: "MacroAI",
     description: "A private nutrition tracker",
-    start_url: "/chat",
+    start_url: "/today",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#ffffff",

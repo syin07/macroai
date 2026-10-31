@@ -75,7 +75,7 @@ describe("auth form flows", () => {
     fill("Email", "ken@example.com");
     fill("Password", "test-only-password");
     fireEvent.click(button);
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/chat"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/today"));
   });
   it("validates inputs before calling auth and labels invalid fields", async () => {
     show(<SignInForm />);
@@ -108,7 +108,7 @@ describe("auth form flows", () => {
       "test-only-password",
     );
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/chat"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/today"));
     expect((screen.getByLabelText("Password") as HTMLInputElement).value).toBe(
       "",
     );
@@ -155,7 +155,7 @@ describe("auth form flows", () => {
       screen.getByRole("button", { name: "Continue with Google" }),
     );
     fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/chat"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/today"));
     expect(authClient.signInWithGoogle).toHaveBeenCalledTimes(2);
     expect(authClient.signInWithPassword).not.toHaveBeenCalled();
   });
@@ -177,7 +177,7 @@ describe("auth form flows", () => {
     fireEvent.click(waiting);
     expect(authClient.signInWithPassword).toHaveBeenCalledTimes(1);
     finish();
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/chat"));
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/today"));
   });
 
   it("checks password confirmation and shows the email-confirmation state", async () => {
