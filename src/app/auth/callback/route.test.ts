@@ -35,7 +35,7 @@ describe("GET /auth/callback", () => {
   it.each(["https://evil.example/x", "//evil.example/x", "/\\evil.example"])("ignores off-site next %s", async (next) => {
     const to = await callback(`?code=abc&next=${encodeURIComponent(next)}`);
     expect(to.origin).toBe("http://localhost:3000");
-    expect(to.pathname).toBe("/chat");
+    expect(to.pathname).toBe("/today");
   });
 
   it("sends failed or missing codes back to sign-in", async () => {

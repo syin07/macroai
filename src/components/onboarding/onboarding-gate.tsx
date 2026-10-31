@@ -14,7 +14,7 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
     ? !me.data.onboarding_complete && path !== "/onboarding"
       ? "/onboarding"
       : me.data.onboarding_complete && path === "/onboarding"
-        ? "/chat"
+        ? "/today"
         : null
     : null;
   useEffect(() => {

@@ -5,9 +5,9 @@ import { resolve } from "node:path";
 import { z } from "zod";
 
 describe("PWA manifest", () => {
-  it("opens the chat and provides installable icons", () => {
+  it("opens the Today page and provides installable icons", () => {
     const app = manifest();
-    expect(app.start_url).toBe("/chat");
+    expect(app.start_url).toBe("/today");
     expect(app.display).toBe("standalone");
     expect(app.icons?.map((icon) => icon.sizes)).toEqual([
       "192x192",

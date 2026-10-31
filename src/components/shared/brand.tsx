@@ -50,7 +50,7 @@ export function MacroMark({ className = "" }: { className?: string }) {
 export function Brand() {
   return (
     <Link
-      href="/chat"
+      href="/today"
       className="brand-link inline-flex min-h-11 items-center gap-2.5 rounded-xl"
       aria-label="MacroAI home"
     >

@@ -13,7 +13,7 @@ export function supabaseConfig(): { url: string; anonKey: string } {
 
 export const SIGN_IN_PATH = "/sign-in";
 export const NOT_APPROVED_PATH = "/not-approved";
-export const HOME_PATH = "/chat";
+export const HOME_PATH = "/today";
 export const PASSWORD_UPDATE_PATH = "/reset-password?mode=update";
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { ChartLine, History, MessageCircle, Settings } from "lucide-react";
+import { ChartLine, ChartPie, History, MessageCircle, Settings } from "lucide-react";
 import { Brand } from "./brand";
 
 const navigation = [
+  { href: "/today", label: "Today", icon: ChartPie },
   { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/history", label: "History", icon: History },
   { href: "/insights", label: "Insights", icon: ChartLine },

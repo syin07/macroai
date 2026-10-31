@@ -48,13 +48,13 @@ describe("browser auth helpers", () => {
 
     await auth.signUp("a@b.co", "longpassword");
     expect(fake.auth.signUp.mock.calls[0]).toMatchObject([
-      { options: { emailRedirectTo: "http://localhost:3000/auth/callback?next=%2Fchat" } },
+      { options: { emailRedirectTo: "http://localhost:3000/auth/callback?next=%2Ftoday" } },
     ]);
 
     void auth.signInWithGoogle();
     await vi.waitFor(() => expect(fake.auth.signInWithOAuth).toHaveBeenCalled());
     expect(fake.auth.signInWithOAuth.mock.calls[0]).toMatchObject([
-      { provider: "google", options: { redirectTo: "http://localhost:3000/auth/callback?next=%2Fchat" } },
+      { provider: "google", options: { redirectTo: "http://localhost:3000/auth/callback?next=%2Ftoday" } },
     ]);
   });
 
