@@ -86,7 +86,7 @@ describe("loadExport", () => {
   it("never includes another user's rows, and filters every query by the session user", async () => {
     const { client, calls } = createFakeQueryClient(exportTables());
     const json = JSON.stringify(await loadExport(client, user, "account", NOW));
-    for (const leak of [USER_B, "Ken", "Egg", "two eggs", "eggs are large", "2500"]) expect(json).not.toContain(leak);
+    for (const leak of [USER_B, "Alex", "Egg", "two eggs", "eggs are large", "2500"]) expect(json).not.toContain(leak);
 
     const tables = new Set(calls.map((c) => c.table));
     for (const table of tables) {

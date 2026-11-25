@@ -23,7 +23,7 @@ describe("scanText", () => {
 
   it("flags the literal value of a server-only env var", () => {
     expect(kinds(`var a="dummy-cron-secret-1234";`, { CRON_SECRET: "dummy-cron-secret-1234" })).toEqual(["value of CRON_SECRET"]);
-    expect(kinds(`["sandy@example.com"]`, { APPROVED_EMAILS: "sandy@example.com, ken@example.com" })).toEqual([
+    expect(kinds(`["sandy@example.com"]`, { APPROVED_EMAILS: "sandy@example.com, alex@example.com" })).toEqual([
       "value of APPROVED_EMAILS",
     ]);
   });

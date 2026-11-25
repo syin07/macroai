@@ -47,7 +47,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "1");
   vi.mocked(authClient.getSession).mockResolvedValue({
-    email: "ken@example.com",
+    email: "alex@example.com",
     approved: true,
     recovery: false,
   });
@@ -72,7 +72,7 @@ describe("auth form flows", () => {
     const button = screen.getByRole("button", { name: "Sign in" });
     expect(button.matches(":disabled")).toBe(false);
     expect(screen.queryByText(/Preview only/)).toBeNull();
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fill("Password", "test-only-password");
     fireEvent.click(button);
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith("/today"));
@@ -100,7 +100,7 @@ describe("auth form flows", () => {
     const storage = vi.spyOn(Storage.prototype, "setItem");
     const client = show(<SignInForm />);
     client.setQueryData(["private"], "old account data");
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fill("Password", "test-only-password");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await screen.findByRole("alert");
@@ -137,7 +137,7 @@ describe("auth form flows", () => {
       message: "private payload",
     });
     show(<SignInForm />);
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fill("Password", "test-only-password");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     expect((await screen.findByRole("alert")).textContent).toContain(
@@ -169,7 +169,7 @@ describe("auth form flows", () => {
         }),
     );
     show(<SignInForm />);
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fill("Password", "test-only-password");
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     const waiting = await screen.findByRole("button", { name: "Please wait…" });
@@ -182,7 +182,7 @@ describe("auth form flows", () => {
 
   it("checks password confirmation and shows the email-confirmation state", async () => {
     show(<SignUpForm />);
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fill("Password", "test-only-password");
     fill("Confirm password", "different-password");
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
@@ -192,12 +192,12 @@ describe("auth form flows", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create account" }));
     await screen.findByRole("heading", { name: "Check your email" });
     expect(screen.queryByLabelText("Password")).toBeNull();
-    expect(screen.getByText("ken@example.com")).toBeTruthy();
+    expect(screen.getByText("alex@example.com")).toBeTruthy();
   });
 
   it("uses non-enumerating reset confirmation copy", async () => {
     show(<RequestPasswordReset />);
-    fill("Email", "ken@example.com");
+    fill("Email", "alex@example.com");
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
     await screen.findByRole("heading", { name: "Check your inbox" });
     expect(screen.getByText(/If an account exists for/)).toBeTruthy();
@@ -212,7 +212,7 @@ describe("auth form flows", () => {
 
   it("updates a password for a recovery session and removes password inputs", async () => {
     vi.mocked(authClient.getSession).mockResolvedValue({
-      email: "ken@example.com",
+      email: "alex@example.com",
       approved: true,
       recovery: true,
     });

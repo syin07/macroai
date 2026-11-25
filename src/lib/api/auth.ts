@@ -1,4 +1,4 @@
-// Frontend boundary for H2. Sandy owns the real helpers in src/lib/auth/client.ts.
+// Frontend boundary for H2. The real helpers live in src/lib/auth/client.ts.
 export type AuthUiErrorCode =
   | "invalid_credentials"
   | "email_not_confirmed"

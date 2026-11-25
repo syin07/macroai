@@ -36,9 +36,9 @@ const prefs = {
   assistant_style: "casual" as const,
 };
 const me = {
-  user_id: "ken",
-  email: "ken@example.test",
-  display_name: "Ken",
+  user_id: "alex",
+  email: "alex@example.test",
+  display_name: "Alex",
   approved: true,
   onboarding_complete: false,
 };

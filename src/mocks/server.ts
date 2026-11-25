@@ -90,8 +90,8 @@ export function createMockApi(
     };
     me = {
       user_id: crypto.randomUUID(),
-      email: "ken@example.com",
-      display_name: "Ken",
+      email: "alex@example.com",
+      display_name: "Alex",
       approved: true,
       onboarding_complete: false,
     };

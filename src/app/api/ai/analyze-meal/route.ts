@@ -12,7 +12,7 @@ import { createSupabaseNutritionCache } from "@/lib/nutrition/cache";
 import { getFood, searchFoods } from "@/lib/nutrition/usda";
 import { analyzeMealRequestSchema } from "@/lib/validation";
 
-// POST /api/ai/analyze-meal { text, timezone, now? } → MealAnalysis. Internal and eval only: Ken's UI
+// POST /api/ai/analyze-meal { text, timezone, now? } → MealAnalysis. Internal and eval only: the UI
 // goes through /api/ai/chat. Returns proposals without saving anything.
 
 // Cache writes are an optimization; without the service-role key the cache is read-only.

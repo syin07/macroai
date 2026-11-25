@@ -1,35 +1,33 @@
 # MacroAI — Shared Contracts
 
-The agreement between the backend (Sandy) and the frontend (Ken). Ken builds the UI against these shapes using mock data; Sandy builds endpoints that return exactly these shapes. If both sides follow this file, the pieces snap together.
+The contract between the frontend and the API. The UI calls these endpoints (or mock fixtures with the same shapes); the route handlers return exactly these shapes.
 
-**Source of truth in code:** `src/types/api.ts` (TypeScript types) and `src/lib/validation/` (Zod schemas). Sandy owns both; this doc mirrors them. If they disagree, fix whichever is wrong in the same PR.
+**Source of truth in code:** `src/types/api.ts` (TypeScript types) and `src/lib/validation/` (Zod schemas). This doc mirrors them. If they disagree, fix whichever is wrong in the same PR.
 
-**Changing a contract:** open a PR that edits `src/types/api.ts` *and* this file, and request the other person's review. Don't merge contract changes without the other person's approval. Additive changes (a new optional field) are low-risk; renames and removals need a heads-up message first.
+**Changing a contract:** edit `src/types/api.ts`, the matching Zod schema, and this file in the same PR, and update any affected mocks in `src/mocks/` and callers in `src/lib/api/`. Additive changes (a new optional field) are low-risk; renames and removals need every caller updated in that PR.
 
 ---
 
-## 1. Ownership Map
+## 1. Code Map
 
-| Path | Owner | Notes |
+| Path | Area | Notes |
 |---|---|---|
-| `src/app/api/**` | Sandy | All route handlers |
-| `src/lib/ai/**`, `src/lib/nutrition/**`, `src/lib/database/**`, `src/lib/memory/**` | Sandy | |
-| `src/lib/auth/**`, `src/proxy.ts`, `src/app/auth/**` | Sandy | Ken calls the exported helpers. `proxy.ts` is Next 16's name for `middleware.ts`; `src/app/auth/callback` is the OAuth / email-link landing route |
-| `src/lib/validation/**`, `src/types/**` | Sandy | Contract changes need Ken's review |
-| `src/lib/api-error.ts` | Sandy | `ApiError` responses and status codes for routes |
-| `supabase/**` | Sandy | Migrations, RLS, seed |
-| `tests/eval/**` | Sandy | Model bake-off and AI eval |
-| `src/app/(auth)/**`, `src/app/(app)/**`, `src/app/layout.tsx` | Ken | All pages and layouts |
-| `src/components/**`, `src/hooks/**` | Ken | |
-| `src/lib/api/**` | Ken | Typed fetch wrappers + mock switch |
-| `src/mocks/**` | Ken | Fixtures matching this file |
-| `public/**`, styles, PWA manifest | Ken | |
-| `package.json`, `tsconfig.json`, `.env.example` | Shared | Mention new dependencies in the PR description |
-| `docs/**` | Shared | Tick off your own plan's checkboxes |
+| `src/app/api/**` | Backend | All route handlers |
+| `src/lib/ai/**`, `src/lib/nutrition/**`, `src/lib/database/**`, `src/lib/memory/**` | Backend | |
+| `src/lib/auth/**`, `src/proxy.ts`, `src/app/auth/**` | Backend | The frontend calls the exported helpers. `proxy.ts` is Next 16's name for `middleware.ts`; `src/app/auth/callback` is the OAuth / email-link landing route |
+| `src/lib/validation/**`, `src/types/**` | Contract | Keep in sync with this file |
+| `src/lib/api-error.ts` | Backend | `ApiError` responses and status codes for routes |
+| `supabase/**` | Backend | Migrations, RLS, seed |
+| `tests/eval/**` | Backend | Model bake-off and AI eval |
+| `src/app/(auth)/**`, `src/app/(app)/**`, `src/app/layout.tsx` | Frontend | All pages and layouts |
+| `src/components/**`, `src/hooks/**` | Frontend | |
+| `src/lib/api/**` | Frontend | Typed fetch wrappers + mock switch |
+| `src/mocks/**` | Frontend | Fixtures matching this file |
+| `public/**`, styles, PWA manifest | Frontend | |
+| `package.json`, `tsconfig.json`, `.env.example` | Config | Mention new dependencies in the PR description |
+| `docs/**` | Docs | Tick plan checkboxes when work merges |
 
-Rule: you may *read* anything; *edit* outside your area only after telling the owner.
-
-`src/lib/nutrition/calc.ts` is pure (no I/O). Ken may import it to preview totals while editing; the server always recalculates on save.
+`src/lib/nutrition/calc.ts` is pure (no I/O). The frontend may import it to preview totals while editing; the server always recalculates on save.
 
 ---
 
@@ -178,7 +176,7 @@ All endpoints require a signed-in, approved user (session cookie set by Supabase
 
 ### Chat (the main entry point)
 
-**`POST /api/ai/chat`** — send a user message (text, photo, or both). Ken only calls this endpoint for AI; `/api/ai/analyze-meal` is Sandy's internal/eval route.
+**`POST /api/ai/chat`** — send a user message (text, photo, or both). The frontend only calls this endpoint for AI; `/api/ai/analyze-meal` is an internal/eval route.
 
 Request: `multipart/form-data`
 
@@ -283,16 +281,16 @@ Stale `version` → `409 version_conflict`.
 ## 4. Mock Mode
 
 - `NEXT_PUBLIC_USE_MOCKS=1` in `.env.local` makes `src/lib/api/client.ts` return fixtures from `src/mocks/` instead of calling the network, with a 600–1,500 ms fake delay for AI calls.
-- Ken writes fixtures for at least: a single-meal proposal, a three-meal proposal, a photo meal with an inferred oil item and a low-confidence item, a clarification question, an auto-saved meal, a deleted-meal card, every `ErrorCode`.
-- When Sandy ships an endpoint, Ken flips that call to the real API (mock mode stays available for UI work).
+- Fixtures cover at least: a single-meal proposal, a three-meal proposal, a photo meal with an inferred oil item and a low-confidence item, a clarification question, an auto-saved meal, a deleted-meal card, every `ErrorCode`.
+- Every endpoint is now live, so calls use the real API by default; mock mode stays available for UI work and tests, and is ignored in production.
 
 ---
 
 ## 5. Integration Checkpoints
 
-The points where one person's work unblocks the other. Ping each other when one lands.
+The points where a backend deliverable lets the matching frontend screen move from mocks to the real API. All of H1–H8 are merged; the remaining (H#) boxes in the plans are end-to-end checks that the frontend really uses them.
 
-| # | Sandy delivers | Ken can then |
+| # | Backend delivers | Frontend can then |
 |---|---|---|
 | H1 | `src/types/api.ts` + Zod schemas merged | Build fixtures and components against real types |
 | H2 | Supabase projects, `.env.example`, auth helpers, middleware | Wire real sign-in, sign-out, not-approved page |

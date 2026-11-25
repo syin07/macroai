@@ -94,7 +94,7 @@ const macros = (
 ): Macros => ({ calories, protein_g, carbs_g, fat_g });
 export const zeroMacros = (): Macros => macros(0, 0, 0, 0);
 
-// Mock arithmetic only. Real meals are always recalculated by Sandy's backend.
+// Mock arithmetic only. Real meals are always recalculated by the backend.
 export function sumMockMacros(values: Macros[]): Macros {
   return values.reduce(
     (sum, value) => ({

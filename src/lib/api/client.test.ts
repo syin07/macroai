@@ -118,7 +118,7 @@ describe("typed API transport", () => {
 
   it("uses the local handler without calling fetch when mock mode is on", async () => {
     vi.stubEnv("NEXT_PUBLIC_USE_MOCKS", "1");
-    expect((await api.getMe()).display_name).toBe("Ken");
+    expect((await api.getMe()).display_name).toBe("Alex");
     expect(transport).not.toHaveBeenCalled();
   });
 

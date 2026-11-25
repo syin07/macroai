@@ -11,7 +11,7 @@ import type { MealStore } from "./tools";
 // The chat tools' view of B7's meal functions, bound to the session user. A thin adapter: the save and
 // edit rules (server-side recalculation, version checks, user-edit marks) are the same functions the
 // /api/meals routes use (database/meal-writes.ts), and totals come from database/daily.ts. Saves are
-// idempotent on the proposal ID (the same key Ken's save button sends, so a chat save and a tap never
+// idempotent on the proposal ID (the same key the UI's save button sends, so a chat save and a tap never
 // duplicate).
 
 // Proposal items have id: null; a saved item gets its id from the database.

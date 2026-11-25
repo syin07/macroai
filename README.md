@@ -7,12 +7,10 @@ A private, mobile-first web app for logging meals by chatting: type what you ate
 ```bash
 git clone https://github.com/syin07/macroai.git
 cd macroai
-./setup.sh ken      # or: ./setup.sh sandy
+./setup.sh
 ```
 
-`setup.sh` tells your coding CLI who you are. It writes a personal, gitignored context file for Claude Code (`.claude/role.md`) and Codex (`AGENTS.override.md`). Then start your CLI in this folder and ask: "What's my next step?"
-
-Re-run `./setup.sh` after pulling changes to `AGENTS.md`, because the Codex file is a copy of it.
+`setup.sh` checks your tools, keeps local and secret files out of git, and creates `.env.local` from `.env.example`. Agent instructions live in `AGENTS.md` (Claude Code reads it through `CLAUDE.md`). Start your coding CLI in this folder and ask: "What's my next step?"
 
 ## Local development
 
@@ -25,7 +23,7 @@ npm run dev
 
 Open http://localhost:3000. Signed-out users are sent to sign-in; approved users
 complete onboarding before Chat. Configure the public Supabase settings from
-`.env.example` for real authentication. Sandy manages Vercel and its environment variables.
+`.env.example` for real authentication.
 
 Before opening a PR, run `npm run lint`, `npm run typecheck`, `npm test`, and
 `npm run build`. Vitest runs `src/**/*.test.ts` and `src/**/*.test.tsx` in Node by
@@ -58,15 +56,15 @@ older daily requests that could otherwise overwrite them.
 
 ## Authentication and integration
 
-The frontend boundary `src/lib/api/auth.ts` delegates to Sandy's helpers in
+The frontend boundary `src/lib/api/auth.ts` delegates to the helpers in
 `src/lib/auth/client.ts` outside explicit development mocks. OAuth, email/password,
 sign-up, reset email, session inspection, password update and sign-out are wired.
 `?mode=update` selects the reset form; a verified recovery session is rechecked
 before a password update. Successful sign-in/sign-out clears old private query data.
 
 Real OAuth, email delivery, account approval, session persistence and cross-account
-isolation still need deployment testing. Sandy's chat/photo/history endpoint
-implementations are now merged; their end-to-end deployment checks remain. See the line-by-line
+isolation still need deployment testing. The chat/photo/history endpoint
+implementations are merged; their end-to-end deployment checks remain. See the line-by-line
 [release checklist](docs/release-checklist.md) for evidence and outstanding checks.
 
 ## Meal editing
@@ -89,6 +87,6 @@ demand, keeping their code out of the initial conversation screen.
 ## Project documentation
 
 - [`docs/PRD.md`](docs/PRD.md): what we're building and why
-- [`docs/plans/shared-contracts.md`](docs/plans/shared-contracts.md): API shapes, file ownership, handoff checkpoints
-- [`docs/plans/sandy-backend-ai.md`](docs/plans/sandy-backend-ai.md): Sandy's plan (backend and AI pipeline)
-- [`docs/plans/ken-frontend.md`](docs/plans/ken-frontend.md): Ken's plan (frontend)
+- [`docs/plans/shared-contracts.md`](docs/plans/shared-contracts.md): API shapes, code map, integration checkpoints
+- [`docs/plans/backend-ai.md`](docs/plans/backend-ai.md): backend and AI pipeline plan
+- [`docs/plans/frontend.md`](docs/plans/frontend.md): frontend plan

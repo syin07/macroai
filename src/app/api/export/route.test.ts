@@ -80,7 +80,7 @@ describe("GET /api/export", () => {
     expect(text).toContain("'@SUM(1+1)");
     expect(text).toContain(`"'=HYPERLINK(""http://evil.example"",""x"")"`);
     expect(text).not.toContain("Deleted snack");
-    expect(text).not.toContain("Ken's lunch");
+    expect(text).not.toContain("Alex's lunch");
   });
 
   it("downloads nutrition JSON by default scope", async () => {

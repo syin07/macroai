@@ -15,7 +15,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(realAuth.getSession).mockResolvedValue(null);
 });
-it("delegates production sign-out to Sandy's auth helper", async () => {
+it("delegates production sign-out to the real auth helper", async () => {
   vi.stubEnv("NODE_ENV", "production");
   await authClient.signOut();
   expect(realAuth.signOut).toHaveBeenCalledOnce();
@@ -56,7 +56,7 @@ it("rechecks a verified recovery session before calling the real password update
   ).rejects.toMatchObject({ code: "invalid_recovery" });
   expect(realAuth.updatePassword).not.toHaveBeenCalled();
   vi.mocked(realAuth.getSession).mockResolvedValue({
-    email: "ken@example.test",
+    email: "alex@example.test",
     approved: true,
     recovery: false,
   });
@@ -64,7 +64,7 @@ it("rechecks a verified recovery session before calling the real password update
     authClient.updatePassword("test-only-password"),
   ).rejects.toMatchObject({ code: "invalid_recovery" });
   vi.mocked(realAuth.getSession).mockResolvedValue({
-    email: "ken@example.test",
+    email: "alex@example.test",
     approved: true,
     recovery: true,
   });

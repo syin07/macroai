@@ -1,10 +1,10 @@
-# Sandy — Backend & AI Pipeline Plan
+# Backend & AI Pipeline Plan
 
 **Role:** everything behind the API: Supabase (database, auth, Row Level Security), the AI pipeline, nutrition lookups and math, and all `/api/*` routes.
-**Read with:** [`../PRD.md`](../PRD.md) (the what) and [`shared-contracts.md`](shared-contracts.md) (the exact shapes Ken builds against).
-**Partner:** Ken owns the frontend. Ken's plan: [`ken-frontend.md`](ken-frontend.md).
+**Read with:** [`../PRD.md`](../PRD.md) (the what) and [`shared-contracts.md`](shared-contracts.md) (the exact shapes the frontend uses).
+**Frontend plan:** [`frontend.md`](frontend.md).
 
-Work top to bottom. Tick a box when it's merged to `main`. Steps marked **(H#)** unblock Ken. Post in the team chat when they land.
+Work top to bottom. Tick a box when it's merged to `main`. Steps marked **(H#)** are the integration checkpoints in shared-contracts §5: when one lands, the matching frontend screen should switch from mocks to the real API.
 
 Ground rules for every step:
 
@@ -15,18 +15,15 @@ Ground rules for every step:
 
 ---
 
-## B0 — Contracts first (with Ken)
+## B0 — Contracts first
 
-- [ ] Walk through `shared-contracts.md` together with Ken; change anything either of you dislikes now, while it's cheap.
 - [x] Write `src/types/api.ts` exactly as in the contracts doc.
 - [x] Write matching Zod schemas in `src/lib/validation/` (`meal.ts`, `chat.ts`, `goals.ts`, `preferences.ts`, `errors.ts`), plus `src/lib/api-error.ts` with a helper that returns `ApiError` responses with the right status codes.
-- [x] **(H1)** Merge, and tell Ken.
+- [x] **(H1)** Merge.
 
-**Done when:** Ken can import every type, and `tsc` passes.
+**Done when:** the frontend can import every type, and `tsc` passes.
 
 ## B1 — Supabase setup
-
-Can start before Ken's scaffold lands; just create the projects and keys.
 
 - [x] Create two Supabase projects: `macroai-dev` and `macroai-prod`.
 - [x] Enable auth providers: email/password (email confirmation on) and Google OAuth (create the OAuth client in Google Cloud Console; redirect URLs for `localhost:3000`, Vercel preview, and production domains).
@@ -44,7 +41,7 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 - [x] SQL function `is_approved()` → true if the current user's email is in `approved_emails`.
 - [x] RLS on every user table: `user_id = auth.uid() and is_approved()`. `meal_items` checks ownership through its parent meal. `nutrition_cache` is readable by any approved user and writable only by the service role.
 - [x] Indexes from PRD §7.4, plus a trigram index (`pg_trgm`) on `meals.name` and `meal_items.food_name` for search.
-- [x] Seed both of your emails into `approved_emails` (dev and prod).
+- [x] Seed the approved emails into `approved_emails` (dev and prod).
 - [x] Write `supabase/tests/rls.sql` (or a TS test using two signed-in clients): user A cannot select, insert, update, or delete user B's rows in any table; an unapproved user can't read anything.
 
 **Done when:** the migration applies cleanly with `supabase db reset`, and the RLS test passes.
@@ -52,11 +49,11 @@ Can start before Ken's scaffold lands; just create the projects and keys.
 ## B3 — Auth plumbing
 
 - [x] `src/lib/auth/server.ts`: `createServerClient()` for route handlers / server components, and `requireUser()`, which returns `{ user, supabase }` or throws `unauthenticated` / `not_approved`.
-- [x] `src/lib/auth/client.ts`: browser client plus exported helpers for Ken: `signInWithGoogle()`, `signInWithPassword(email, pw)`, `signUp(email, pw)`, `sendPasswordReset(email)`, `updatePassword(pw)`, `signOut()`.
+- [x] `src/lib/auth/client.ts`: browser client plus exported helpers for the frontend: `signInWithGoogle()`, `signInWithPassword(email, pw)`, `signUp(email, pw)`, `sendPasswordReset(email)`, `updatePassword(pw)`, `signOut()`.
 - [x] `src/app/auth/callback/route.ts` for the OAuth / email-link code exchange.
 - [x] `src/proxy.ts` (Next 16's rename of `middleware.ts`): refresh the session on every request; redirect signed-out users on `(app)` routes to `/sign-in`; redirect signed-in-but-unapproved users to `/not-approved`.
 - [x] `GET /api/me`.
-- [x] **(H2)** Tell Ken the helpers are ready, with a 3-line usage example in the PR description.
+- [x] **(H2)** Helpers ready, with a 3-line usage example in the PR description.
 
 **Done when:** you can sign in with Google and with email on localhost, an unapproved test account lands on `/not-approved`, and `GET /api/me` without a session returns `401`.
 
@@ -80,7 +77,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] Check the winner's API data policy (no training on inputs; retention period; zero-retention option) and record it in the results doc.
 - [x] Set `AI_PROVIDER` and set the real calorie-error target in PRD §20.
 
-**Done when:** `docs/bakeoff-results.md` is merged with a decision that Ken has seen.
+**Done when:** `docs/bakeoff-results.md` is merged with a decision.
 
 ## B5 — Nutrition library
 
@@ -123,7 +120,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] `POST /api/ai/chat`: parse the multipart body, check `client_message_id` for replay, insert the user message (`had_image`, no image bytes), run the tool loop (max 6 steps), apply save mode (`confirm` → return proposal cards; `auto` → call `save_meal` unless `needs_clarification`), insert the assistant message with its cards, and return the contract response.
 - [x] Prompt rules: never claim a save that didn't happen (only say "saved" if `save_meal` returned success); answer account questions only from tool results; never change goals.
 - [x] `GET /api/messages` (cursor by `created_at, id`), `DELETE /api/messages/:id`. When serving messages, re-hydrate `kind: "meal"` cards with current meal data (`null` if deleted).
-- [ ] **(H4)** Tell Ken text chat is live.
+- [ ] **(H4)** Confirm the frontend's text chat, save and daily summary use the real API (not mocks) end to end.
 
 **Done when:** "2 eggs and toast" → proposal card → save → daily summary updates, through the real UI or `curl`.
 
@@ -133,7 +130,7 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] Merge the text caption into the same extraction call.
 - [x] Prompt: list likely hidden ingredients (oil, butter, dressing) as `inferred: true` items with `confidence: "low"`. Unrecognizable image → no proposals, and a short explanation.
 - [x] Confirm the deployed function's request-size limit comfortably fits a 1.5 MB upload.
-- [ ] **(H5)** Tell Ken photos are live.
+- [ ] **(H5)** Confirm the frontend's photo upload uses the real API end to end.
 
 **Done when:** a phone photo taken through the real UI produces a card, and nothing image-related exists in the database or storage afterwards.
 
@@ -150,13 +147,13 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 
 - [x] `search_meal_history` tool: date range, food-name search, aggregates (sum or average over recorded days, and how many days had records; PRD 13 says not to treat missing days as zero).
 - [x] Eval cases: "what did I eat last Tuesday", "protein yesterday", "last time I had salmon", "average calories this week".
-- [ ] **(H6/H7)** Confirm with Ken that history and message pagination are wired.
+- [ ] **(H6/H7)** Confirm the frontend's history and message pagination are wired to the real API.
 
 ## B12 — Goals, preferences, onboarding
 
 - [x] `src/lib/nutrition/goals.ts` (pure): Mifflin–St Jeor BMR, activity multipliers (1.2 / 1.375 / 1.55 / 1.725 / 1.9), goal adjustment (−500 / 0 / +300 kcal), protein 1.8 g/kg (bodyweight), fat 25% of kcal, carbs = remainder. Unit-test against hand calculations.
 - [x] `GET/PUT /api/goals` (a new `effective_from` row on change, so history keeps old targets), `POST /api/goals/suggest`, `GET/PATCH /api/preferences`, `POST /api/onboarding/complete`.
-- [ ] **(H3)** Tell Ken.
+- [ ] **(H3)** Confirm the frontend's settings and onboarding use the real goals, preferences and onboarding endpoints.
 
 ## B13 — Memory
 
@@ -171,14 +168,14 @@ Goal: pick the AI provider using our own data (PRD §5.4, §16.3).
 - [x] AI cap: before any model call, count today's `ai_usage` rows for the user; at `AI_DAILY_CALL_CAP` return `429 ai_cap_reached`.
 - [x] `GET /api/export`: CSV (one row per meal item, with meal columns repeated) and JSON (nested meals → items, plus messages and memories for `scope=account`).
 - [x] `DELETE /api/account`: delete all user rows (cascade), then the auth user via the service role. Verify the other account is untouched.
-- [ ] **(H8)** Tell Ken.
+- [ ] **(H8)** Confirm the frontend's memories, export and account deletion use the real API.
 
 ## B15 — Security, eval, release
 
 - [x] Security tests (PRD §16.4): cross-account read/write through every API route with a second session; unapproved account blocked; grep the built client bundle (`.next/static`) for key prefixes; error responses contain no stack traces.
 - [ ] Re-run the full eval set on the final prompts; update `docs/bakeoff-results.md`.
 - [ ] Apply migrations to `macroai-prod` (`supabase db push`), seed `approved_emails`, set the prod env vars, and add the Vercel Cron.
-- [ ] Release checklist with Ken: PRD §19 Definition of Done, line by line.
+- [ ] Release checklist (`docs/release-checklist.md`): PRD §19 Definition of Done, line by line.
 
 ---
 

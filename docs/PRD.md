@@ -3,9 +3,9 @@
 
 **Version:** 1.2
 **Date:** October 26, 2026
-**Status:** Agreed. Merged from Sandy's v0.2 and Ken's v1.0; merge conflicts resolved (Section 23).
+**Status:** Agreed. Merged from two earlier drafts (v0.2 and v1.0); merge conflicts resolved (Section 23).
 **Project type:** Private, AI-powered nutrition tracking web application
-**Development team:** Sandy (backend & AI pipeline) and Ken (frontend), using AI-assisted coding tools
+**Development team:** Sandy (whole project: frontend, backend, AI pipeline, deployment), using AI coding agents
 **Deployment platform:** Vercel
 
 ---
@@ -50,7 +50,7 @@ The experience should feel casual, intuitive, and personal rather than clinical,
 
 ## 1.3 Intended Users
 
-Initially, there will be only two approved users: the project's developers.
+Initially, only a few allow-listed users are approved: the developer and invited testers.
 
 Each user must have a completely independent account, food history, goals, memories, and preferences.
 
@@ -88,7 +88,7 @@ Nutrition values should always be presented as estimates where appropriate.
 
 ## 2.1 Development Constraint
 
-Two developers primarily using AI coding tools will build this.
+One developer, working mainly through AI coding agents, will build this.
 
 So the first release must prioritize polish and reliability in its central workflow rather than breadth of features.
 
@@ -1007,7 +1007,7 @@ Pick the model by running a bake-off on our own data (16.3), not by default or r
 |---|---|
 | Gemini 3.1 Flash-Lite (or 3.0 Flash) | Best calorie accuracy in the only multi-model benchmark found; Flash-Lite cheapest of the top group |
 | Claude Haiku 5.5 (`claude-haiku-5-5`) | Cheapest per token on paper; strong structured output and tool use |
-| An affordable OpenAI vision model with structured outputs | Ken's original recommendation |
+| An affordable OpenAI vision model with structured outputs | The v1.0 draft's original recommendation |
 
 Escalate to a larger tier (e.g. Claude Sonnet 5.5, Gemini Flash over Flash-Lite) only if the small models fail on mixed dishes.
 
@@ -1536,7 +1536,7 @@ Define API request and response schemas in shared TypeScript types.
 
 ## 9.1 Private Access
 
-Only two approved accounts may access the deployed application.
+Only allow-listed accounts (`approved_emails`) may access the deployed application: the developer plus a small number of invited testers.
 
 A publicly accessible Vercel URL must not imply publicly accessible nutrition records.
 
@@ -1552,7 +1552,7 @@ Each account must have its own:
 - Goals.
 - Personal preferences.
 
-Even developers must not be able to retrieve each other's account information through ordinary application access.
+Even the developer must not be able to retrieve another account's information through ordinary application access.
 
 ## 9.3 Images
 
@@ -1890,7 +1890,7 @@ Verify:
 
 # 17. Build Order
 
-Work in this order. There are no target dates. Each developer's detailed steps are in `docs/plans/sandy-backend-ai.md` and `docs/plans/ken-frontend.md`. If something runs long, protect the core logging workflow, authentication, privacy, and data integrity first, and move nonessential conveniences to the P1 backlog.
+Work in this order. There are no target dates. Detailed steps are in `docs/plans/backend-ai.md` and `docs/plans/frontend.md`. If something runs long, protect the core logging workflow, authentication, privacy, and data integrity first, and move nonessential conveniences to the P1 backlog.
 
 **Stage 1 — Foundation.** Initialize the Next.js project, TypeScript, and styling. Set up the repository and Vercel deployment pipeline. Connect Supabase.
 
@@ -1914,49 +1914,15 @@ Work in this order. There are no target dates. Each developer's detailed steps a
 
 **Stage 11 — Release.** Test user isolation and AI accuracy, manual testing on desktop and mobile, production deployment, and fixing release-blocking issues.
 
-**Then:** both developers use it daily for two weeks before starting P1 work.
+**Then:** the approved users use it daily for two weeks before starting P1 work.
 
 ---
 
-# 18. Team Responsibilities
+# 18. Responsibilities
 
-Work is divided by ownership, with shared data contracts (`docs/plans/shared-contracts.md`). Run `./setup.sh sandy` or `./setup.sh ken` so your coding CLI knows your role.
+Sandy owns everything, working through AI coding agents. Plans: `docs/plans/backend-ai.md` (Supabase schema, auth, AI integration and bake-off, nutrition lookups and calculation, meal persistence, memory, export) and `docs/plans/frontend.md` (responsive interface, chat, dashboard, cards, editor, history, loading/error states, mobile testing). The API contract between them is `docs/plans/shared-contracts.md`.
 
-## Ken — Frontend and Experience
-
-Primary responsibilities:
-
-- Responsive interface.
-- Chat layout.
-- Dashboard.
-- Nutrition cards.
-- Meal editor.
-- Loading and error states.
-- History interface.
-- Mobile interaction testing.
-
-## Sandy — Backend and AI
-
-Primary responsibilities:
-
-- Supabase schema.
-- Authentication and authorization.
-- AI integration and model bake-off.
-- FoodData Central and Open Food Facts integration.
-- Calculation engine.
-- Meal persistence.
-- AI memory.
-- Data cleanup and export.
-
-## Shared Responsibilities
-
-- Data types and API contracts.
-- Building the weighed-meal test set (both of us eat, weigh, and photograph).
-- Integration tests.
-- Security testing.
-- Deployment.
-- AI evaluation.
-- Code review.
+Cross-cutting work: integration and security tests, AI evaluation, deployment, and code review of agent PRs.
 
 Use short feature branches and merge small tested changes frequently.
 
@@ -1968,7 +1934,7 @@ The MVP is complete when all of the following conditions are met.
 
 ### Accounts
 
-- Both approved users can sign in.
+- Every approved user can sign in.
 - Unapproved accounts are blocked.
 - Their data remains isolated.
 
@@ -2052,7 +2018,7 @@ Suggested targets:
 | Mobile usability | Core logging flows work on common mobile viewport sizes |
 | AI cost | Under $1 per 1,000 logged meals |
 | Calorie error (weighed subset) | Aspirational: under ~15%. Not measured yet: the 2026-10-26 bake-off used text cases only (no weighed-photo set), so it measured extraction, not calorie error. Re-check with ad-hoc weighed photos once photos ship (B9) |
-| Daily use | Both developers use it daily for two weeks without returning to another tracker |
+| Daily use | The approved users use it daily for two weeks without returning to another tracker |
 
 These are engineering acceptance targets, not measured product performance.
 
@@ -2115,18 +2081,18 @@ Its initial release focuses on accurate-enough, convenient food logging and a cl
 ## Decisions
 
 - 2026-10-26: Web app first (mobile-first, PWA); native apps are P2.
-- 2026-10-26: Accounts required; two approved accounts only; Google + email/password sign-in.
+- 2026-10-26: Accounts required; two approved accounts only; Google + email/password sign-in. (2026-11-24: widened to a small allow-list of approved accounts, see §9.1.)
 - 2026-10-26: Meal photos are not stored long term; only structured results are kept.
 - 2026-10-26: Name is MacroAI.
 - 2026-10-26: Chat-first interface (from v1.0).
 - 2026-10-26: AI provider is chosen by a bake-off (Gemini Flash-Lite vs Claude Haiku 5.5 vs an OpenAI model) behind a provider abstraction.
 - 2026-10-26: Photos are sent straight to the model and never stored by default; temporary storage only if required, with v1.0's deletion rules.
 - 2026-10-26: Web-search lookup for restaurant/branded items is P1; AI-only labeled fallback is in the MVP.
-- 2026-10-26: Roles: Sandy owns backend and AI pipeline; Ken owns frontend.
+- 2026-11-24: Sandy owns the whole project (frontend, backend, AI pipeline, deployment); there is no ownership split.
 - 2026-10-29: **FR-03 clarification rule favours auto-save.** An item's uncertainty is the larger deviation of its low/high bound from its point estimate (not the full span), checked against 20% of meal calories or 15 g protein, and inferred hidden ingredients are not measured (they stay in the meal as editable low-confidence items). The full-span rule tripped on the prompt's own chicken-and-rice example and on most inferred oil items, so auto-save mode asked instead of saving. The extraction prompt's worked example was narrowed to match (`extract-meal-v3`). Code: `src/lib/ai/analyze.ts`.
-- 2026-10-29: **B5: USDA FoodData Central stays a live API** with the existing `nutrition_cache` (`src/lib/nutrition/cache.ts`); no local copy of the dataset. Two users and a per-food cache keep well under the 1,000 requests/hour limit, and the bake-off showed no latency problem.
+- 2026-10-29: **B5: USDA FoodData Central stays a live API** with the existing `nutrition_cache` (`src/lib/nutrition/cache.ts`); no local copy of the dataset. A handful of users and a per-food cache keep well under the 1,000 requests/hour limit, and the bake-off showed no latency problem.
 - 2026-10-29: **B14: deleting an account leaves the email in `approved_emails`.** The allow-list is an admin concern (who may sign up), not user data; removing a person from it is a separate admin action. Documented in `src/lib/database/account.ts`.
-- 2026-10-29: **Deployment: the Vercel project stays on the Hobby plan under Sandy's account.** Ken is not a project member, so Ken's preview deployments fail, and that is accepted. Sandy deploys; Ken verifies locally and on Sandy's preview URLs.
+- 2026-10-29: **Deployment: the Vercel project stays on the Hobby plan under Sandy's account.** Sandy deploys.
 
 ## Open Questions
 
