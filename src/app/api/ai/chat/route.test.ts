@@ -198,7 +198,7 @@ describe("POST /api/ai/chat — save modes", () => {
     expect(body.daily_summary!.consumed.calories).toBeCloseTo(235, 6);
     expect(body.daily_summary!.meals.map((m) => m.id)).toEqual([card.meal_id]);
 
-    // The save used the proposal ID as its idempotency key, same as Ken's save button.
+    // The save used the proposal ID as its idempotency key, same as the UI's save button.
     expect(mealDb.idempotency_keys.map((k) => k.key)).toEqual([expect.stringMatching(/^[0-9a-f-]{36}$/)]);
     expect(lastToolOutputs(provider.chatInputs[1]!)[0]).toMatchObject({ proposals: [{ status: "saved", meal_id: card.meal_id }] });
 

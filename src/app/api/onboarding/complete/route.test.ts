@@ -21,7 +21,7 @@ const { POST } = await import("./route");
 const ME = APPROVED_USER.id;
 const OTHER = "22222222-2222-4222-8222-222222222222";
 const MY_PROFILE = { id: ME, display_name: "Sandy", timezone: "UTC", onboarding_complete: false };
-const THEIR_PROFILE = { id: OTHER, display_name: "Ken", timezone: "UTC", onboarding_complete: false };
+const THEIR_PROFILE = { id: OTHER, display_name: "Alex", timezone: "UTC", onboarding_complete: false };
 
 let db: MemoryDb;
 

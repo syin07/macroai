@@ -21,7 +21,7 @@ describe("PWA manifest", () => {
 });
 
 describe("backend test runtime", () => {
-  it("supports Zod 4 and Node web APIs used by Sandy's contracts", async () => {
+  it("supports Zod 4 and Node web APIs used by the API contracts", async () => {
     const schema = z.object({ id: z.uuid(), at: z.iso.datetime() });
     const data = schema.parse({
       id: "550e8400-e29b-41d4-a716-446655440000",

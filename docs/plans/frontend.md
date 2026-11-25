@@ -1,10 +1,10 @@
-# Ken — Frontend Plan
+# Frontend Plan
 
 **Role:** everything the user sees and touches: the Next.js app shell, pages, components, mobile behavior, theming, PWA, and the typed API client.
 **Read with:** [`../PRD.md`](../PRD.md) (the what) and [`shared-contracts.md`](shared-contracts.md) (the exact data shapes and endpoints).
-**Partner:** Sandy owns the backend and AI pipeline. Sandy's plan: [`sandy-backend-ai.md`](sandy-backend-ai.md).
+**Backend plan:** [`backend-ai.md`](backend-ai.md).
 
-Work top to bottom. Tick a box when it's merged to `main`. You never need to wait on Sandy: build against mock data (`NEXT_PUBLIC_USE_MOCKS=1`), then switch each screen to the real API when the matching checkpoint **(H#)** lands.
+Work top to bottom. Tick a box when it's merged to `main`. UI work can run against mock data (`NEXT_PUBLIC_USE_MOCKS=1`); each screen uses the real API once the matching checkpoint **(H#)** has landed (all of H1–H8 have).
 
 Ground rules for every step:
 
@@ -16,26 +16,25 @@ Ground rules for every step:
 
 ---
 
-## A0 — Contracts first (with Sandy)
+## A0 — Contracts first
 
-- [ ] Walk through `shared-contracts.md` together with Sandy; push back now on anything awkward for the UI (e.g. fields you need on a card).
 - [x] After **H1**, import the types from `src/types/api.ts`. Never redefine them locally.
 
 ## A1 — Project scaffold
 
-Do this first: Sandy's routes go into this project.
+Do this first: the API routes go into this project.
 
 - [x] `npx create-next-app@latest macroai --ts --app --tailwind --eslint --src-dir --import-alias "@/*"` in a temporary folder, then move its contents into the repo root. Merge its `.gitignore` into ours, and keep `README.md`, `AGENTS.md`, and `CLAUDE.md`.
 - [x] `npx shadcn@latest init`; add components as you need them (start with: button, input, textarea, card, sheet, dialog, drawer, tabs, sonner, skeleton, progress, dropdown-menu, form, label, switch, separator).
 - [x] Install: `lucide-react`, `@tanstack/react-query`, `next-themes`, `date-fns`, `date-fns-tz`, `zod`, `react-hook-form`, `@hookform/resolvers`, `vitest`, `@testing-library/react`, `prettier`, `prettier-plugin-tailwindcss`.
-- [x] Create the folder structure from PRD §6.2. Per Ken's A1 handoff requirements, use only empty `.gitkeep` files in Sandy's folders; no `index.ts`, `api.ts`, or middleware placeholders.
+- [x] Create the folder structure from PRD §6.2. Use only empty `.gitkeep` files in the backend folders; no `index.ts`, `api.ts`, or middleware placeholders.
 - [x] `next-themes` provider in `src/app/layout.tsx`: default `system`, class strategy. A theme toggle comes later in Settings.
 - [x] Mobile meta: `viewport` with `viewport-fit=cover`, a `theme-color` per scheme, and `env(safe-area-inset-*)` padding utilities.
 - [x] PWA: `src/app/manifest.ts` (name "MacroAI", `display: "standalone"`, start URL `/chat`), 192/512 px icons plus a maskable icon and `apple-touch-icon` in `public/`.
-- [ ] **Sandy owns deployment:** import `syin07/macroai` into Vercel and confirm preview builds on PRs. Ken reassigned Vercel setup to Sandy; not verified by this scaffold.
+- [ ] Import `syin07/macroai` into Vercel and confirm preview builds on PRs (production already deploys from `main`; preview builds not yet verified).
 - [x] Add `npm run lint`, `npm run typecheck`, `npm test` scripts and a GitHub Action that runs them on PRs.
 
-Scaffold handoff: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defaults to Node and picks up `src/**/*.test.{ts,tsx}`. DOM tests opt into jsdom per file. Node 24 LTS is used locally and in CI. `.env.example` remains trackable. Physical iPhone home-screen installation remains to be checked after Sandy deploys.
+Scaffold notes: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defaults to Node and picks up `src/**/*.test.{ts,tsx}`. DOM tests opt into jsdom per file. Node 24 LTS is used locally and in CI. `.env.example` remains trackable. Physical iPhone home-screen installation remains to be checked on the deployed app.
 
 **Done when:** the empty app deploys to a Vercel preview URL, installs to an iPhone home screen, and follows the system dark mode.
 
@@ -50,7 +49,7 @@ Scaffold handoff: Zod 4; strict TypeScript and `@/*` → `./src/*`; Vitest defau
 
 **Done when:** a scratch page can call every function in mock mode and show the results.
 
-A2 merged in PR #3 after Sandy’s approval. The API transport skips auth redirects when already on the destination page, preventing reload loops. Development playground: `/dev/api` with `NEXT_PUBLIC_USE_MOCKS=1`; unavailable in production. Chat drafts and save actions retain their IDs on retry; mocks remain in memory.
+A2 merged in PR #3. The API transport skips auth redirects when already on the destination page, preventing reload loops. Development playground: `/dev/api` with `NEXT_PUBLIC_USE_MOCKS=1`; unavailable in production. Chat drafts and save actions retain their IDs on retry; mocks remain in memory.
 
 ## A3 — App shell and navigation
 
@@ -62,21 +61,21 @@ A2 merged in PR #3 after Sandy’s approval. The API transport skips auth redire
 
 **Done when:** all four tabs navigate without full reloads on phone and desktop sizes in both themes.
 
-A3 merged in PR #4 after Sandy’s approval. Includes the route shells, mobile tabs, desktop sidebar, safe-area spacing, and accessible navigation. Browser checks cover all four tabs at 375/768/1280 px in both themes. Physical-device checks remain A15.
+A3 merged in PR #4. Includes the route shells, mobile tabs, desktop sidebar, safe-area spacing, and accessible navigation. Browser checks cover all four tabs at 375/768/1280 px in both themes. Physical-device checks remain A15.
 
 ## A4 — Auth screens
 
 Build with mocks or stubs first; wire up after **H2**.
 
-- [ ] Sign in: a "Continue with Google" button plus an email/password form (react-hook-form + zod), with links to sign up and reset password. Use Sandy's helpers from `src/lib/auth/client.ts`.
+- [ ] Sign in: a "Continue with Google" button plus an email/password form (react-hook-form + zod), with links to sign up and reset password. Use the helpers from `src/lib/auth/client.ts`.
 - [ ] Sign up: email, password, confirm; then a "check your email" state.
 - [ ] Reset password: request form, plus the "set new password" form reached from the email link.
 - [ ] Not approved: a friendly message, the signed-in email, and a sign-out button.
 - [ ] Error messages for wrong password, unconfirmed email, and network failure.
 
-**Done when (after H2):** both of you can sign in with Google and with email on the preview URL; a third account sees "not approved"; refreshing keeps you signed in.
+**Done when (after H2):** each approved account can sign in with Google and with email on the deployed URL; a third account sees "not approved"; refreshing keeps you signed in.
 
-A4 UI merged in PR #9 after Sandy’s approval. `/dev/auth` exercises the mock-only flows. H2 backend auth plumbing is now merged, but the frontend adapter in `src/lib/api/auth.ts` still needs to delegate to Sandy’s helpers. Production authentication remains unavailable until that wiring is done. The new-password form requires a recovery session; a URL flag alone cannot authorize a change. Keep A4 acceptance boxes open until real OAuth, email delivery, approval enforcement, and session persistence are verified.
+A4 UI merged in PR #9. `/dev/auth` exercises the mock-only flows. The frontend adapter in `src/lib/api/auth.ts` delegates to the helpers in `src/lib/auth/client.ts` (wired in A15). The new-password form requires a recovery session; a URL flag alone cannot authorize a change. Keep A4 acceptance boxes open until real OAuth, email delivery, approval enforcement, and session persistence are verified.
 
 ## A5 — Chat screen
 
@@ -92,7 +91,7 @@ The core of the app. Spend the most polish here.
 
 **Done when (mock mode):** sending text shows the right card fixtures, errors keep the draft, and scrolling back loads older pages smoothly.
 
-A5 merged in PR #12 after Sandy’s approval. Includes chronological pagination, anchored scrollback, optimistic sends, retained text/photo drafts, same-ID retry, first-use prompts, a totals strip, and manual-entry fallback. Cards are now provided by A6. A8 still adds photo resizing/camera/library/thumbnails; A9 expands the summary and A10 completes save/undo/manual cards. Physical iPhone Safari/Android Chrome keyboard checks and real chat endpoint integration remain open.
+A5 merged in PR #12. Includes chronological pagination, anchored scrollback, optimistic sends, retained text/photo drafts, same-ID retry, first-use prompts, a totals strip, and manual-entry fallback. Cards are now provided by A6. A8 still adds photo resizing/camera/library/thumbnails; A9 expands the summary and A10 completes save/undo/manual cards. Physical iPhone Safari/Android Chrome keyboard checks and real chat endpoint integration remain open.
 
 ## A6 — Meal card
 
@@ -107,7 +106,7 @@ A5 merged in PR #12 after Sandy’s approval. Includes chronological pagination,
 
 **Done when:** every card fixture from contracts §4 renders correctly in both themes.
 
-A6 merged in PR #15 at Ken’s request, with CI and the production build passing. Cards expand to portions, sources, assumptions, time, and totals; single/batch saves preserve retry identities and use server totals. Clarification focuses chat. Discard and unsaved name/time edits survive navigation in private browser memory, but reset on reload because the contract has no discard endpoint. `/dev/meals` covers all fixtures and failure/retry. Full item/portion and saved-meal editing remain A7; auto-save undo remains A10.
+A6 merged in PR #15, with CI and the production build passing. Cards expand to portions, sources, assumptions, time, and totals; single/batch saves preserve retry identities and use server totals. Clarification focuses chat. Discard and unsaved name/time edits survive navigation in private browser memory, but reset on reload because the contract has no discard endpoint. `/dev/meals` covers all fixtures and failure/retry. Full item/portion and saved-meal editing remain A7; auto-save undo remains A10.
 
 ## A7 — Meal editor
 
@@ -116,12 +115,12 @@ A6 merged in PR #15 at Ken’s request, with CI and the production build passing
 - [x] Edit the name, consumed-at date and time (native `datetime-local`), and each item's quantity and unit. Grams is editable directly, as one tap from the card.
 - [x] Add an item (name + grams, or manual macros), and remove an item.
 - [x] Manual macro override per item (switches that item to `nutrition_source: "manual"`).
-- [x] Live totals preview using `src/lib/nutrition/calc.ts` (Sandy's pure functions). The server's response is the final value.
+- [x] Live totals preview using `src/lib/nutrition/calc.ts` (pure functions). The server's response is the final value.
 - [x] For a proposal: Save sends the edited proposal through `saveMeals`. For a saved meal: `updateMeal` with `version`; on `409 version_conflict`, refetch and show "This meal changed — review and save again".
 
 **Done when:** editing grams updates totals instantly, and save works in mock mode (and in real mode after **H6**).
 
-A7 merged in PR #18 after Sandy’s approval. Includes mobile Drawer/desktop Dialog, one-tap grams focus, quantity/unit conversion, item add/remove and repeated portions, manual overrides and label-per-100g entries, validation through Sandy's schemas, and previews through `src/lib/nutrition/calc.ts`. New foods require entered nutrition rather than guesses from name/weight. Edited proposals retain their save key on retry; saved edits retain item IDs and versions. A 409 fetches the latest meal, keeps the user's draft visible, and requires explicit loading/review before saving again. `/auth/meal-editor-preview` is a public, development-only mock page under the existing public auth namespace; production still returns 404. H6 endpoints have since landed; live account integration and physical phone checks remain pending.
+A7 merged in PR #18. Includes mobile Drawer/desktop Dialog, one-tap grams focus, quantity/unit conversion, item add/remove and repeated portions, manual overrides and label-per-100g entries, validation through the shared Zod schemas, and previews through `src/lib/nutrition/calc.ts`. New foods require entered nutrition rather than guesses from name/weight. Edited proposals retain their save key on retry; saved edits retain item IDs and versions. A 409 fetches the latest meal, keeps the user's draft visible, and requires explicit loading/review before saving again. `/auth/meal-editor-preview` is a public, development-only mock page under the existing public auth namespace; production still returns 404. H6 endpoints have since landed; live account integration and physical phone checks remain pending.
 
 ## A8 — Photo input
 
@@ -131,9 +130,9 @@ A7 merged in PR #18 after Sandy’s approval. Includes mobile Drawer/desktop Dia
 - [x] Keep the image only in memory (an object URL, revoked after send). Never in localStorage or IndexedDB.
 - [x] In the sent bubble, show a small "📷 Photo" chip (`had_image`), not the image itself, since the server doesn't keep it (PRD FR-15).
 
-**Done when (after H5):** a photo taken on both your phones produces a card through the real API, and the upload is under 1.5 MB.
+**Done when (after H5):** a photo taken on an iPhone and an Android phone produces a card through the real API, and the upload is under 1.5 MB.
 
-A8 merged in PR #19 after Sandy’s approval. Camera/library inputs, JPEG conversion, thumbnails, retained retries, URL cleanup, and Photo-only history are implemented. Real iPhone HEIC/Android camera and H5 upload checks remain open, so the combined resize/device-test checkbox is still unchecked.
+A8 merged in PR #19. Camera/library inputs, JPEG conversion, thumbnails, retained retries, URL cleanup, and Photo-only history are implemented. Real iPhone HEIC/Android camera and H5 upload checks remain open, so the combined resize/device-test checkbox is still unchecked.
 
 ## A9 — Daily summary and dashboard
 
@@ -149,7 +148,7 @@ A8 merged in PR #19 after Sandy’s approval. Camera/library inputs, JPEG conver
 - [ ] Delete flow (from card, editor, or history): call `deleteMeal` → a toast "Meal deleted · Undo" until `undo_until` → `undoDelete` on tap.
 - [x] Manual logging: a "+" action in the composer menu opens a form (name, kcal, protein, carbs, fat, date/time) → `saveMeals` with `source_type: "manual"`. The result appears in chat as a saved card.
 
-A9/A10 merged together in PR #23 after Sandy’s approval. The chat summary includes compact macro bars, an SVG calorie ring, consumed/target/remaining values, neutral overflow styling, and a timezone-aware timeline opening A7's editor. Returned daily summaries update totals without another daily fetch. Newly received auto-saved cards offer Undo for 10 seconds; deletion uses the server's `undo_until`, with shared notifications, retry, expiry handling, and restoration. Cards and the editor share deletion actions; A11 adds the History entry point. Manual logging validates through the shared schema, preserves retry identity, and inserts the returned saved meal into chat. This immediate manual card is kept in private browser memory and deduplicated against server messages; cross-device/reload chat placement depends on the backend emitting the linked message (the mock does). `/auth/dashboard-preview` is development-only and unavailable in production. H6 endpoints are now merged. Live account integration and physical-device checks remain open; the A10 History deletion checkbox stays open until A11 merges.
+A9/A10 merged together in PR #23. The chat summary includes compact macro bars, an SVG calorie ring, consumed/target/remaining values, neutral overflow styling, and a timezone-aware timeline opening A7's editor. Returned daily summaries update totals without another daily fetch. Newly received auto-saved cards offer Undo for 10 seconds; deletion uses the server's `undo_until`, with shared notifications, retry, expiry handling, and restoration. Cards and the editor share deletion actions; A11 adds the History entry point. Manual logging validates through the shared schema, preserves retry identity, and inserts the returned saved meal into chat. This immediate manual card is kept in private browser memory and deduplicated against server messages; cross-device/reload chat placement depends on the backend emitting the linked message (the mock does). `/auth/dashboard-preview` is development-only and unavailable in production. H6 endpoints are now merged. Live account integration and physical-device checks remain open; A11 (merged) adds the History deletion entry point; tick the A10 delete box once it is verified live.
 
 ## A11 — History screen
 
@@ -160,7 +159,7 @@ A9/A10 merged together in PR #23 after Sandy’s approval. The chat summary incl
 
 **Done when (after H6):** 200+ mock meals scroll smoothly and search filters correctly.
 
-A11 implementation is on `ken/a11-history`, pending review/merge. It groups paginated results by the account’s time zone, deduplicates cursor overlaps, and uses each day’s authoritative daily summary rather than summing a partial page or filtered result. Includes 300 ms search, inclusive native date filters, automatic pagination plus a keyboard-accessible button, retained filters and retry states, and distinct empty/no-results views. A responsive detail sheet reuses the expanded meal card, A7 editor, and A10 deletion/restore flow. `/auth/history-preview` is development-only with 205 mock records. H6 routes are now on main; live approved-account verification remains pending auth integration.
+A11 merged in PR #26. It groups paginated results by the account’s time zone, deduplicates cursor overlaps, and uses each day’s authoritative daily summary rather than summing a partial page or filtered result. Includes 300 ms search, inclusive native date filters, automatic pagination plus a keyboard-accessible button, retained filters and retry states, and distinct empty/no-results views. A responsive detail sheet reuses the expanded meal card, A7 editor, and A10 deletion/restore flow. `/auth/history-preview` is development-only with 205 mock records. H6 routes are now on main; live approved-account verification remains pending auth integration.
 
 ## A12 — Settings
 
@@ -168,7 +167,7 @@ A11 implementation is on `ken/a11-history`, pending review/merge. It groups pagi
 
 **Done when (after H3/H8):** every setting persists across reload and across devices.
 
-A12 implementation is on `ken/a12-settings`, pending review/merge. Includes server-backed theme/logging/time-zone preferences with explicit Save and retained drafts, validated manual goals, a reusable calculation/review step with cm/ft-in and kg/lb inputs, memory edits/deletion confirmation, all three exports with temporary URL cleanup, and account actions. Suggestions do not save targets automatically. Sign-out now calls Sandy’s real helper outside development mocks; successful sign-out/deletion cancels queries, clears private caches, and replaces the document with sign-in. Account deletion requires exact `DELETE`; tests cover failure retention and duplicate-submit protection. `/auth/settings-preview` is development-only. Other A4 auth operations remain unwired, so real approved-account reload/cross-device and device checks remain open; keep A12’s acceptance box unchecked until merge and integration verification.
+A12 merged in PR #36. Includes server-backed theme/logging/time-zone preferences with explicit Save and retained drafts, validated manual goals, a reusable calculation/review step with cm/ft-in and kg/lb inputs, memory edits/deletion confirmation, all three exports with temporary URL cleanup, and account actions. Suggestions do not save targets automatically. Sign-out now calls the real auth helper outside development mocks; successful sign-out/deletion cancels queries, clears private caches, and replaces the document with sign-in. Account deletion requires exact `DELETE`; tests cover failure retention and duplicate-submit protection. `/auth/settings-preview` is development-only. Other A4 auth operations remain unwired, so real approved-account reload/cross-device and device checks remain open; keep A12’s acceptance box unchecked until merge and integration verification.
 
 ## A13 — Onboarding
 
@@ -179,13 +178,13 @@ A12 implementation is on `ken/a12-settings`, pending review/merge. Includes serv
   4. Save mode choice with a one-line explanation of each.
 - [ ] `completeOnboarding` → `/chat`.
 
-A13 implementation is on `ken/a13-onboarding`, pending review/merge. Four steps include progress dots, detected time zone, the shared metric/imperial goal calculator, editable suggested or manual targets, optional skips, and explained save modes. First-run routing checks `me.onboarding_complete` within authenticated app routes and sends completed accounts away from onboarding. Failed loads offer retry; failed saves retain choices, duplicate finish requests are blocked, and completion runs only after the save mode succeeds. Completion updates the account query before navigating to Chat. Body-stat drafts stay in component memory for Back and disappear on unmount; no browser storage is used. `/auth/onboarding-preview` is development-only with mocks. A13 acceptance remains open until merge and real approved-account verification; A4 production sign-in wiring is still pending.
+A13 merged in PR #36. Four steps include progress dots, detected time zone, the shared metric/imperial goal calculator, editable suggested or manual targets, optional skips, and explained save modes. First-run routing checks `me.onboarding_complete` within authenticated app routes and sends completed accounts away from onboarding. Failed loads offer retry; failed saves retain choices, duplicate finish requests are blocked, and completion runs only after the save mode succeeds. Completion updates the account query before navigating to Chat. Body-stat drafts stay in component memory for Back and disappear on unmount; no browser storage is used. `/auth/onboarding-preview` is development-only with mocks. A13 acceptance remains open until merge and real approved-account verification; A4 production sign-in wiring is still pending.
 
 ## A14 — Insights tab (MVP-light)
 
 - [ ] For the MVP: the last 7 recorded days as a simple list (date, kcal, protein) via `getDaily` per day, with a note that charts are coming. Full charts (Recharts) are P1.
 
-A14 implementation is on `ken/a14-insights`, pending review/merge. Insights discovers the newest seven recorded local dates through paginated saved meals, then loads each full day's authoritative calories and protein through `getDaily`; it never sums a partial meal page or substitutes zero for missing days. Dates follow account preferences, future dates are excluded, and the meal-query cache includes the time zone because the inclusive through-today filter depends on it. Includes empty/fewer-than-seven states, retained rows after failures, independent retry for each total and for day discovery, and the planned charts-coming note. Shared daily-cache updates appear immediately. `/auth/insights-preview` is development-only with mock empty/small-log/failure/theme controls. Acceptance stays open until merge and live approved-account verification; physical-device and production auth integration remain A15/A4 work.
+A14 merged in PRs #29 and #36. Insights discovers the newest seven recorded local dates through paginated saved meals, then loads each full day's authoritative calories and protein through `getDaily`; it never sums a partial meal page or substitutes zero for missing days. Dates follow account preferences, future dates are excluded, and the meal-query cache includes the time zone because the inclusive through-today filter depends on it. Includes empty/fewer-than-seven states, retained rows after failures, independent retry for each total and for day discovery, and the planned charts-coming note. Shared daily-cache updates appear immediately. `/auth/insights-preview` is development-only with mock empty/small-log/failure/theme controls. Acceptance stays open until merge and live approved-account verification; physical-device and production auth integration remain A15/A4 work.
 
 ## A15 — Polish and device testing
 
@@ -194,17 +193,16 @@ A14 implementation is on `ken/a14-insights`, pending review/merge. Insights disc
 - [ ] Real-device pass on iPhone Safari (browser and installed PWA) and Android Chrome: keyboard + composer, camera, safe areas, theme switching, back-gesture behavior.
 - [ ] Lighthouse mobile on `/chat`: performance ≥ 90, accessibility ≥ 95.
 - [ ] Remove the scratch pages; mock mode off in production.
-- [ ] Release checklist with Sandy: PRD §19 Definition of Done, line by line.
+- [ ] Release checklist: PRD §19 Definition of Done, line by line (same task as backend B15; one pass covers both).
 
-A15 local implementation is on `ken/a15-release-polish`, pending review/merge, and has been updated to main after the A11–A14 and Sandy chat/photo/history merges. Adds shared reduced-motion-safe loading skeletons, an app loading/error fallback, route-change focus management, global focus rings, stronger light-theme text contrast, and on-demand editor/manual-entry code. All auth operations now delegate to Sandy's helpers outside development mocks; password updates recheck a verified recovery session. The API client ignores both the mock flag and per-call mock overrides in production. All ten scratch routes and ten preview components are removed. `docs/release-checklist.md` maps every PRD §19 criterion to local evidence or an explicit live prerequisite. Ken confirmed no deployment is available and requested completion of local work only. Real iPhone Safari/PWA and Android checks, authenticated `/chat` Lighthouse scores, joint release sign-off, and live account/API verification remain pending. These acceptance boxes stay open until merge and the required evidence exists; older development-preview URLs described above have been retired by A15. Earlier notes saying A11–A14 are awaiting merge, or that H4/H5/H7 implementations are missing, describe their original handoffs and are superseded by this update.
+A15 merged in PR #37, on top of the A11–A14 and backend chat/photo/history merges. Adds shared reduced-motion-safe loading skeletons, an app loading/error fallback, route-change focus management, global focus rings, stronger light-theme text contrast, and on-demand editor/manual-entry code. All auth operations now delegate to the `src/lib/auth/client.ts` helpers outside development mocks; password updates recheck a verified recovery session. The API client ignores both the mock flag and per-call mock overrides in production. All ten scratch routes and ten preview components are removed. `docs/release-checklist.md` maps every PRD §19 criterion to local evidence or an explicit live prerequisite. Real iPhone Safari/PWA and Android checks, authenticated `/chat` Lighthouse scores, release sign-off, and live account/API verification remain pending. These acceptance boxes stay open until merge and the required evidence exists; older development-preview URLs described above have been retired by A15. Earlier notes saying A11–A14 are awaiting merge, or that H4/H5/H7 implementations are missing, describe their original handoffs and are superseded by this update.
 
 ---
 
-## Shared Tasks (with Sandy)
+## Cross-cutting tasks
 
-- Photograph and weigh 15+ of your own real meals for the bake-off test set (see Sandy's B4 for the format). Weigh each component before it's combined.
-- Review each other's PRs within a day; Sandy reviews anything touching `src/lib/api/` error handling, and you review any change to `src/types/api.ts`.
-- Cross-account security pass before release: sign in as each other's test account and try to see the other's data.
+- Optional: photograph and weigh real meals to measure photo calorie accuracy (see backend B4; no weighed-photo set exists yet).
+- Cross-account security pass before release: sign in as a second approved test account and try to see the first account's data.
 
 ## Later (P1, don't start before the MVP ships)
 

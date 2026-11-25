@@ -23,7 +23,7 @@ const OTHER = "22222222-2222-4222-8222-222222222222";
 
 const MY_PROFILE = { id: ME, display_name: "Sandy", timezone: "America/Los_Angeles", onboarding_complete: false };
 const MY_PREFS = { user_id: ME, theme: "dark", save_mode: "confirm", assistant_style: "casual" };
-const THEIR_PROFILE = { id: OTHER, display_name: "Ken", timezone: "Asia/Tokyo", onboarding_complete: true };
+const THEIR_PROFILE = { id: OTHER, display_name: "Alex", timezone: "Asia/Tokyo", onboarding_complete: true };
 const THEIR_PREFS = { user_id: OTHER, theme: "light", save_mode: "auto", assistant_style: "detailed" };
 
 let db: MemoryDb;

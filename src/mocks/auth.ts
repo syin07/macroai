@@ -19,7 +19,7 @@ export function createMockAuth(delay = 650) {
   const mock: AuthAdapter = {
     async signInWithGoogle() {
       await wait();
-      session = { email: "ken@example.com", approved, recovery: false };
+      session = { email: "alex@example.com", approved, recovery: false };
     },
     async signInWithPassword(email) {
       await wait();
@@ -58,7 +58,7 @@ export function createMockAuth(delay = 650) {
     setApproved(value: boolean) {
       approved = value;
     },
-    beginRecovery(email = "ken@example.com") {
+    beginRecovery(email = "alex@example.com") {
       session = { email, approved, recovery: true };
     },
     reset() {

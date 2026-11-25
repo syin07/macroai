@@ -29,7 +29,7 @@ export function exportTables() {
   return {
     profiles: [
       { id: USER_A, display_name: "Sandy", timezone: "America/Los_Angeles" },
-      { id: USER_B, display_name: "Ken", timezone: "UTC" },
+      { id: USER_B, display_name: "Alex", timezone: "UTC" },
     ],
     account_preferences: [
       { user_id: USER_A, theme: "dark", save_mode: "confirm", assistant_style: "casual" },
@@ -116,7 +116,7 @@ export function exportTables() {
       {
         id: "b0000000-0000-4000-8000-000000000001",
         user_id: USER_B,
-        name: "Ken's lunch",
+        name: "Alex's lunch",
         consumed_at: "2026-10-26T12:00:00+00:00",
         created_at: "2026-10-26T12:00:00+00:00",
         updated_at: "2026-10-26T12:00:00+00:00",

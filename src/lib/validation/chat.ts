@@ -53,7 +53,7 @@ export function sniffImageType(bytes: Uint8Array): AllowedImageType | null {
   return null;
 }
 
-// POST /api/ai/analyze-meal — internal/eval route, not part of Ken's contract. `now` pins the clock so
+// POST /api/ai/analyze-meal — internal/eval route, not part of the frontend contract. `now` pins the clock so
 // date-phrase eval cases are reproducible; it only affects the returned proposals, which aren't saved.
 export const analyzeMealRequestSchema = z.object({
   text: z.string().trim().min(1).max(MAX_CHAT_TEXT),
